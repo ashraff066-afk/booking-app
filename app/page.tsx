@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { supabase } from "./supabase";
 
 const COLORS = {
   bg: "#0a0e1a",
@@ -25,36 +26,29 @@ const SECTORS = [
 const PLANS = [
   {
     name: "أساسي",
-    price: "25,000",
+    price: "20,000",
     color: "#64748b",
     features: ["حجز غير محدود", "تذكير واتساب", "لوحة تحكم", "دعم فني"],
     ideal: "صالون صغير",
   },
   {
     name: "احترافي",
-    price: "60,000",
+    price: "50,000",
     color: "#00d4aa",
-    features: ["كل مزايا الأساسي", "ملف عميل كامل", "تقارير شهرية", "أكثر من موظف", "تطبيق موبايل"],
+    features: ["كل مزايا الأساسي", "ملف عميل كامل", "تقارير شهرية", "أكثر من موظف"],
     ideal: "عيادة / صالون كبير",
     popular: true,
   },
   {
     name: "بريميوم",
-    price: "120,000",
+    price: "100,000",
     color: "#f59e0b",
     features: ["كل مزايا الاحترافي", "حجز غرف متعدد", "دفع أونلاين", "API مخصص", "مدير حساب"],
     ideal: "فندق / شاليه",
   },
 ];
 
-const STEPS = [
-  { num: "01", title: "سجّل على المنصة", desc: "أنشئ حساب مجاني خلال دقيقتين. لا تحتاج بطاقة ائتمان.", icon: "🚀", color: "#3b82f6" },
-  { num: "02", title: "اختر قطاعك", desc: "عيادة، صالون، أو شاليه — كل واحد له لوحة تحكم مخصصة.", icon: "🎯", color: "#00d4aa" },
-  { num: "03", title: "شارك رابط الحجز", desc: "أرسل رابطك لعملائك عبر واتساب أو انستغرام وابدأ فوراً.", icon: "🔗", color: "#ec4899" },
-  { num: "04", title: "استلم الحجوزات", desc: "الحجوزات تصلك بالواتساب وتظهر في لوحتك تلقائياً.", icon: "✅", color: "#f59e0b" },
-];
-
-const BOOKINGS = [
+const BOOKINGS_DEMO = [
   { name: "أحمد محمد", service: "كشف عام", time: "10:00 ص", status: "confirmed", sector: "🏥" },
   { name: "سارة علي", service: "قص شعر", time: "11:30 ص", status: "pending", sector: "✂️" },
   { name: "عمر خالد", service: "غرفة ديلوكس", time: "الغد", status: "confirmed", sector: "🏨" },
@@ -68,18 +62,38 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [activeSector, setActiveSector] = useState("clinic");
   const [selectedPlan, setSelectedPlan] = useState("احترافي");
+  const [selectedTime, setSelectedTime] = useState("10:00 ص");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [service, setService] = useState("كشف عام");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleBooking = async () => {
+    if (!name || !phone) {
+      alert("يرجى إدخال الاسم ورقم الهاتف");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.from("bookings").insert([
+      { name, phone, service, time: selectedTime, sector: "clinic", status: "pending" }
+    ]);
+    setLoading(false);
+    if (error) {
+      alert("حدث خطأ، حاول مرة ثانية");
+    } else {
+      setSuccess(true);
+      setName("");
+      setPhone("");
+      setTimeout(() => setSuccess(false), 3000);
+    }
+  };
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        minHeight: "100vh",
-        background: COLORS.bg,
-        color: COLORS.text,
-        fontFamily: "'Tajawal', 'Cairo', sans-serif",
-        overflowX: "hidden",
-      }}
-    >
+    <div dir="rtl" style={{
+      minHeight: "100vh", background: COLORS.bg, color: COLORS.text,
+      fontFamily: "'Tajawal', 'Cairo', sans-serif", overflowX: "hidden",
+    }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -93,7 +107,6 @@ export default function App() {
         .plan-card { transition: all 0.25s; cursor: pointer; }
         .plan-card:hover { transform: translateY(-4px); }
         .glow { box-shadow: 0 0 30px #00d4aa33, 0 0 60px #00d4aa11; }
-        .step-num { background: linear-gradient(135deg, #00d4aa22, #00d4aa44); }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
         .fade-in { animation: fadeIn 0.5s ease; }
@@ -102,18 +115,10 @@ export default function App() {
         @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 #00d4aa44} 50%{box-shadow:0 0 0 6px #00d4aa00} }
       `}</style>
 
-      {/* NAV */}
       <nav style={{
-        background: "#0d1424",
-        borderBottom: `1px solid ${COLORS.border}`,
-        padding: "0 24px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: 64,
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
+        background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`,
+        padding: "0 24px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", height: 64, position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
@@ -135,23 +140,14 @@ export default function App() {
             { id: "plans", label: "الأسعار" },
             { id: "start", label: "ابدأ الآن" },
           ].map(t => (
-            <button
-              key={t.id}
-              className="tab-btn"
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                border: "none",
-                cursor: "pointer",
-                fontSize: 14,
-                fontFamily: "Tajawal, sans-serif",
-                fontWeight: activeTab === t.id ? 700 : 400,
-                background: activeTab === t.id ? COLORS.accentDim : "transparent",
-                color: activeTab === t.id ? COLORS.accent : COLORS.muted,
-                borderBottom: activeTab === t.id ? `2px solid ${COLORS.accent}` : "2px solid transparent",
-              }}
-            >{t.label}</button>
+            <button key={t.id} className="tab-btn" onClick={() => setActiveTab(t.id)} style={{
+              padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontSize: 14, fontFamily: "Tajawal, sans-serif",
+              fontWeight: activeTab === t.id ? 700 : 400,
+              background: activeTab === t.id ? COLORS.accentDim : "transparent",
+              color: activeTab === t.id ? COLORS.accent : COLORS.muted,
+              borderBottom: activeTab === t.id ? `2px solid ${COLORS.accent}` : "2px solid transparent",
+            }}>{t.label}</button>
           ))}
         </div>
         <div style={{
@@ -163,30 +159,13 @@ export default function App() {
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }} className="fade-in">
 
-        {/* DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <div>
             <div style={{
               background: "linear-gradient(135deg, #0d1a2e 0%, #0a1628 50%, #0d1a2e 100%)",
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 20,
-              padding: "48px 40px",
-              marginBottom: 32,
-              position: "relative",
-              overflow: "hidden",
+              border: `1px solid ${COLORS.border}`, borderRadius: 20,
+              padding: "48px 40px", marginBottom: 32, position: "relative", overflow: "hidden",
             }}>
-              <div style={{
-                position: "absolute", top: -60, left: -60,
-                width: 300, height: 300, borderRadius: "50%",
-                background: "radial-gradient(circle, #00d4aa15, transparent 70%)",
-                pointerEvents: "none",
-              }} />
-              <div style={{
-                position: "absolute", bottom: -80, right: 100,
-                width: 400, height: 400, borderRadius: "50%",
-                background: "radial-gradient(circle, #0070f315, transparent 70%)",
-                pointerEvents: "none",
-              }} />
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 8,
@@ -222,7 +201,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* STATS */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 32 }}>
               {[
                 { label: "عملاء مسجلين", value: "1,240", icon: "👥", trend: "+12%" },
@@ -242,7 +220,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* SECTORS + RECENT BOOKINGS */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20, color: COLORS.white }}>القطاعات المدعومة</h3>
@@ -278,10 +255,10 @@ export default function App() {
                     border: `1px solid ${COLORS.accent}44`,
                   }}>● مباشر</span>
                 </div>
-                {BOOKINGS.map((b, i) => (
+                {BOOKINGS_DEMO.map((b, i) => (
                   <div key={i} style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 0", borderBottom: i < BOOKINGS.length - 1 ? `1px solid ${COLORS.border}` : "none",
+                    padding: "10px 0", borderBottom: i < BOOKINGS_DEMO.length - 1 ? `1px solid ${COLORS.border}` : "none",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{
@@ -307,17 +284,12 @@ export default function App() {
           </div>
         )}
 
-        {/* DEMO TAB */}
         {activeTab === "demo" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>جرب نظام الحجز</h2>
             <p style={{ color: COLORS.muted, marginBottom: 28 }}>هذا مثال على شكل صفحة الحجز اللي تشوفها عملائك</p>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-              <div style={{
-                background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                borderRadius: 16, padding: 28,
-              }}>
+              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 28 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: 12,
@@ -330,32 +302,38 @@ export default function App() {
                   </div>
                 </div>
 
-                {[
-                  { label: "اسمك الكامل", placeholder: "مثال: محمد علي", type: "text" },
-                  { label: "رقم الهاتف (واتساب)", placeholder: "07xx xxx xxxx", type: "tel" },
-                ].map((f, i) => (
-                  <div key={i} style={{ marginBottom: 16 }}>
-                    <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>{f.label}</label>
-                    <input
-                      type={f.type}
-                      placeholder={f.placeholder}
-                      style={{
-                        width: "100%", padding: "12px 16px", borderRadius: 10,
-                        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-                        color: COLORS.text, fontSize: 14, outline: "none",
-                        fontFamily: "Tajawal, sans-serif",
-                      }}
-                    />
-                  </div>
-                ))}
+                {success && (
+                  <div style={{
+                    background: "#00d4aa22", border: "1px solid #00d4aa",
+                    borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+                    color: "#00d4aa", fontWeight: 700, textAlign: "center",
+                  }}>✅ تم الحجز بنجاح!</div>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>اسمك الكامل</label>
+                  <input type="text" placeholder="مثال: محمد علي" value={name} onChange={e => setName(e.target.value)} style={{
+                    width: "100%", padding: "12px 16px", borderRadius: 10,
+                    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                  }} />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>رقم الهاتف (واتساب)</label>
+                  <input type="tel" placeholder="07xx xxx xxxx" value={phone} onChange={e => setPhone(e.target.value)} style={{
+                    width: "100%", padding: "12px 16px", borderRadius: 10,
+                    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                  }} />
+                </div>
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>نوع الخدمة</label>
-                  <select style={{
+                  <select value={service} onChange={e => setService(e.target.value)} style={{
                     width: "100%", padding: "12px 16px", borderRadius: 10,
                     background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-                    color: COLORS.text, fontSize: 14, outline: "none",
-                    fontFamily: "Tajawal, sans-serif",
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
                   }}>
                     <option>كشف عام</option>
                     <option>استشارة طبية</option>
@@ -368,32 +346,29 @@ export default function App() {
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 500 }}>اختر الموعد</label>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
                     {["9:00 ص", "10:00 ص", "11:00 ص", "12:00 م", "2:00 م", "3:00 م"].map((t, i) => (
-                      <div key={i} style={{
+                      <div key={i} onClick={() => setSelectedTime(t)} style={{
                         padding: "10px", borderRadius: 8, textAlign: "center",
-                        background: i === 1 ? COLORS.accentDim : COLORS.surface,
-                        border: `1px solid ${i === 1 ? COLORS.accent : COLORS.border}`,
-                        color: i === 1 ? COLORS.accent : COLORS.text,
-                        fontSize: 13, cursor: "pointer", fontWeight: i === 1 ? 700 : 400,
+                        background: selectedTime === t ? COLORS.accentDim : COLORS.surface,
+                        border: `1px solid ${selectedTime === t ? COLORS.accent : COLORS.border}`,
+                        color: selectedTime === t ? COLORS.accent : COLORS.text,
+                        fontSize: 13, cursor: "pointer", fontWeight: selectedTime === t ? 700 : 400,
                         transition: "all 0.2s",
                       }}>{t}</div>
                     ))}
                   </div>
                 </div>
 
-                <button style={{
+                <button onClick={handleBooking} disabled={loading} style={{
                   width: "100%", padding: "14px",
-                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                  background: loading ? "#666" : "linear-gradient(90deg, #00d4aa, #0070f3)",
                   border: "none", borderRadius: 10, fontSize: 16,
-                  fontWeight: 700, cursor: "pointer", color: "#000",
+                  fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", color: "#000",
                   fontFamily: "Tajawal, sans-serif",
-                }}>✅ تأكيد الحجز</button>
+                }}>{loading ? "جاري الحجز..." : "✅ تأكيد الحجز"}</button>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{
-                  background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                  borderRadius: 16, padding: 24,
-                }}>
+                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                     <span style={{ fontSize: 24 }}>💬</span>
                     <span style={{ fontWeight: 700, color: COLORS.white }}>تذكير تلقائي بالواتساب</span>
@@ -409,15 +384,11 @@ export default function App() {
                       <div>موعدك غداً الساعة 10:00 ص</div>
                       <div>د. أحمد سالم — الكرادة</div>
                       <div style={{ marginTop: 6, color: "#128C7E", fontWeight: 600 }}>تأكيد الحضور؟ اضغط هنا ✓</div>
-                      <div style={{ fontSize: 10, color: "#666", marginTop: 4, textAlign: "left" }}>9:00 م ✓✓</div>
                     </div>
                   </div>
                 </div>
 
-                <div style={{
-                  background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                  borderRadius: 16, padding: 24,
-                }}>
+                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
                   <h4 style={{ fontWeight: 700, marginBottom: 16, color: COLORS.white }}>⚡ الميزات الرئيسية</h4>
                   {[
                     "تذكير تلقائي بالواتساب قبل الموعد بساعة",
@@ -441,7 +412,6 @@ export default function App() {
           </div>
         )}
 
-        {/* PLANS TAB */}
         {activeTab === "plans" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8, textAlign: "center" }}>باقات الاشتراك</h2>
@@ -480,8 +450,7 @@ export default function App() {
                   <button style={{
                     width: "100%", marginTop: 20, padding: "12px",
                     background: selectedPlan === p.name ? p.color : "transparent",
-                    border: `1px solid ${p.color}`,
-                    borderRadius: 10, fontSize: 14, fontWeight: 700,
+                    border: `1px solid ${p.color}`, borderRadius: 10, fontSize: 14, fontWeight: 700,
                     cursor: "pointer", color: selectedPlan === p.name ? "#000" : p.color,
                     fontFamily: "Tajawal, sans-serif", transition: "all 0.2s",
                   }}>اختر هذه الباقة</button>
@@ -491,87 +460,10 @@ export default function App() {
           </div>
         )}
 
-        {/* START TAB */}
         {activeTab === "start" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>🗺️ خارطة طريقك</h2>
             <p style={{ color: COLORS.muted, marginBottom: 32 }}>شسوي بالضبط حتى تبلش وتبيع هالنظام</p>
-
-            <div style={{ marginBottom: 40 }}>
-              <h3 style={{ fontWeight: 700, marginBottom: 20, fontSize: 18, color: COLORS.accent }}>المرحلة 1 — البناء (أسبوعين)</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16 }}>
-                {[
-                  { step: "1", title: "سجّل دومين وهوستينج", desc: "namecheap.com أو GoDaddy — دومين مثل hojozati.com بـ 15$ سنوياً. هوستينج Vercel مجاني للبداية.", icon: "🌐" },
-                  { step: "2", title: "بنِ الواجهة (Frontend)", desc: "استخدم Next.js + Tailwind. الصفحات: الرئيسية، صفحة حجز، لوحة تحكم العميل. انسخ هالنظام وطوّره.", icon: "💻" },
-                  { step: "3", title: "بنِ الباكند + قاعدة البيانات", desc: "Node.js + Supabase (مجاني). جداول: عملاء، حجوزات، خدمات، تذكيرات.", icon: "🗄️" },
-                  { step: "4", title: "ربط الواتساب API", desc: "استخدم WhatsApp Business API أو Twilio. أرسل تذكير تلقائي قبل الموعد بساعة.", icon: "📲" },
-                ].map((s, i) => (
-                  <div key={i} style={{
-                    background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14, padding: 20, display: "flex", gap: 16,
-                  }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                      background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`,
-                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
-                    }}>{s.icon}</div>
-                    <div>
-                      <div style={{ fontSize: 11, color: COLORS.accent, fontWeight: 700, marginBottom: 4 }}>خطوة {s.step}</div>
-                      <div style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>{s.title}</div>
-                      <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.7 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 40 }}>
-              <h3 style={{ fontWeight: 700, marginBottom: 20, fontSize: 18, color: "#f59e0b" }}>المرحلة 2 — الإطلاق (الأسبوع 3)</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
-                {[
-                  { icon: "🎁", title: "5 عملاء مجانيين", desc: "روّح على صالون أو عيادة قريبة منك وعرّف النظام مجاناً شهر." },
-                  { icon: "📱", title: "فيديو على تيك توك", desc: "صوّر فيديو قصير كيف يشتغل النظام. الناس تحب تشوف النتيجة." },
-                  { icon: "💬", title: "مجموعات واتساب", desc: "انضم لمجموعات أصحاب المحلات والعيادات وشارك رابطك." },
-                ].map((s, i) => (
-                  <div key={i} style={{
-                    background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14, padding: 20,
-                  }}>
-                    <div style={{ fontSize: 32, marginBottom: 12 }}>{s.icon}</div>
-                    <div style={{ fontWeight: 700, color: COLORS.white, marginBottom: 8 }}>{s.title}</div>
-                    <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 1.7 }}>{s.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 32 }}>
-              <h3 style={{ fontWeight: 700, marginBottom: 20, fontSize: 18, color: "#ec4899" }}>المرحلة 3 — التحويل لمدفوع (الشهر 2)</h3>
-              <div style={{
-                background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                borderRadius: 16, padding: 24,
-              }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-                  {[
-                    { label: "5 عملاء × 25K", value: "125,000 د.ع", note: "باقة أساسي" },
-                    { label: "5 عملاء × 60K", value: "300,000 د.ع", note: "باقة احترافي" },
-                    { label: "2 عملاء × 120K", value: "240,000 د.ع", note: "باقة بريميوم" },
-                    { label: "المجموع الشهري", value: "665,000 د.ع", note: "≈ 500$ شهرياً", highlight: true },
-                  ].map((r, i) => (
-                    <div key={i} style={{
-                      background: r.highlight ? COLORS.accentDim : COLORS.surface,
-                      border: `1px solid ${r.highlight ? COLORS.accent : COLORS.border}`,
-                      borderRadius: 12, padding: 16, textAlign: "center",
-                    }}>
-                      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>{r.label}</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: r.highlight ? COLORS.accent : COLORS.white }}>{r.value}</div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{r.note}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <div style={{
               background: "linear-gradient(135deg, #0d1a2e, #0a1628)",
               border: `1px solid ${COLORS.accent}44`,
