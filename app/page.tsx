@@ -69,6 +69,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Plan modal state
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [planName, setPlanName] = useState("");
+  const [planPrice, setPlanPrice] = useState("");
+  const [modalName, setModalName] = useState("");
+  const [modalPhone, setModalPhone] = useState("");
+
   const handleBooking = async () => {
     if (!name || !phone) {
       alert("يرجى إدخال الاسم ورقم الهاتف");
@@ -87,6 +94,25 @@ export default function App() {
       setPhone("");
       setTimeout(() => setSuccess(false), 3000);
     }
+  };
+
+  const openPlanModal = (plan: { name: string; price: string }) => {
+    setPlanName(plan.name);
+    setPlanPrice(plan.price);
+    setModalName("");
+    setModalPhone("");
+    setShowPlanModal(true);
+  };
+
+  const handlePlanSubmit = () => {
+    if (!modalName || !modalPhone) {
+      alert("يرجى إدخال الاسم ورقم الهاتف");
+      return;
+    }
+    const msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً`;
+    const url = `https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+    setShowPlanModal(false);
   };
 
   return (
@@ -113,7 +139,70 @@ export default function App() {
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         .badge-live { animation: badgePulse 1.5s infinite; }
         @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 #00d4aa44} 50%{box-shadow:0 0 0 6px #00d4aa00} }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 999; }
       `}</style>
+
+      {/* PLAN MODAL */}
+      {showPlanModal && (
+        <div className="modal-overlay" onClick={() => setShowPlanModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: COLORS.card, border: `1px solid ${COLORS.border}`,
+            borderRadius: 20, padding: 32, width: 400, maxWidth: "90vw",
+          }}>
+            <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 8 }}>
+              باقة {planName}
+            </h3>
+            <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>
+              {planPrice} د.ع / شهر — أدخل بياناتك وسنتواصل معك فوراً
+            </p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسمك الكامل</label>
+              <input
+                type="text"
+                placeholder="مثال: محمد علي"
+                value={modalName}
+                onChange={e => setModalName(e.target.value)}
+                style={{
+                  width: "100%", padding: "12px 16px", borderRadius: 10,
+                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
+              <input
+                type="tel"
+                placeholder="07xx xxx xxxx"
+                value={modalPhone}
+                onChange={e => setModalPhone(e.target.value)}
+                style={{
+                  width: "100%", padding: "12px 16px", borderRadius: 10,
+                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                }}
+              />
+            </div>
+
+            <button onClick={handlePlanSubmit} style={{
+              width: "100%", padding: "14px",
+              background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+              border: "none", borderRadius: 10, fontSize: 16,
+              fontWeight: 700, cursor: "pointer", color: "#000",
+              fontFamily: "Tajawal, sans-serif", marginBottom: 12,
+            }}>📱 تواصل معنا على واتساب</button>
+
+            <button onClick={() => setShowPlanModal(false)} style={{
+              width: "100%", padding: "12px",
+              background: "transparent", border: `1px solid ${COLORS.border}`,
+              borderRadius: 10, fontSize: 14, cursor: "pointer", color: COLORS.muted,
+              fontFamily: "Tajawal, sans-serif",
+            }}>إلغاء</button>
+          </div>
+        </div>
+      )}
 
       <nav style={{
         background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`,
@@ -447,13 +536,15 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                  <button style={{
-                    width: "100%", marginTop: 20, padding: "12px",
-                    background: selectedPlan === p.name ? p.color : "transparent",
-                    border: `1px solid ${p.color}`, borderRadius: 10, fontSize: 14, fontWeight: 700,
-                    cursor: "pointer", color: selectedPlan === p.name ? "#000" : p.color,
-                    fontFamily: "Tajawal, sans-serif", transition: "all 0.2s",
-                  }}>اختر هذه الباقة</button>
+                  <button
+                    onClick={e => { e.stopPropagation(); openPlanModal(p); }}
+                    style={{
+                      width: "100%", marginTop: 20, padding: "12px",
+                      background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                      border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                      cursor: "pointer", color: "#000",
+                      fontFamily: "Tajawal, sans-serif", transition: "all 0.2s",
+                    }}>اشترك الآن</button>
                 </div>
               ))}
             </div>
@@ -472,12 +563,14 @@ export default function App() {
               <div style={{ fontSize: 32, marginBottom: 12 }}>🚀</div>
               <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, color: COLORS.white }}>جاهز تبلش؟</h3>
               <p style={{ color: COLORS.muted, marginBottom: 20 }}>ابعتلي رسالة وأساعدك تبني النظام خطوة بخطوة</p>
-              <button style={{
-                background: "linear-gradient(90deg, #00d4aa, #0070f3)",
-                border: "none", borderRadius: 10, padding: "14px 40px",
-                fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
-                fontFamily: "Tajawal, sans-serif",
-              }}>ابدأ مشروعك الآن ✓</button>
+              <button
+                onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أبدأ مشروعي", "_blank")}
+                style={{
+                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                  border: "none", borderRadius: 10, padding: "14px 40px",
+                  fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
+                  fontFamily: "Tajawal, sans-serif",
+                }}>ابدأ مشروعك الآن ✓</button>
             </div>
           </div>
         )}
