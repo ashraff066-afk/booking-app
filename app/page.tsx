@@ -69,31 +69,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Plan modal state
+  // Plan modal
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [planName, setPlanName] = useState("");
   const [planPrice, setPlanPrice] = useState("");
   const [modalName, setModalName] = useState("");
   const [modalPhone, setModalPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [step, setStep] = useState(1);
 
   const handleBooking = async () => {
-    if (!name || !phone) {
-      alert("يرجى إدخال الاسم ورقم الهاتف");
-      return;
-    }
+    if (!name || !phone) { alert("يرجى إدخال الاسم ورقم الهاتف"); return; }
     setLoading(true);
     const { error } = await supabase.from("bookings").insert([
       { name, phone, service, time: selectedTime, sector: "clinic", status: "pending" }
     ]);
     setLoading(false);
-    if (error) {
-      alert("حدث خطأ، حاول مرة ثانية");
-    } else {
-      setSuccess(true);
-      setName("");
-      setPhone("");
-      setTimeout(() => setSuccess(false), 3000);
-    }
+    if (error) { alert("حدث خطأ، حاول مرة ثانية"); }
+    else { setSuccess(true); setName(""); setPhone(""); setTimeout(() => setSuccess(false), 3000); }
   };
 
   const openPlanModal = (plan: { name: string; price: string }) => {
@@ -101,17 +94,25 @@ export default function App() {
     setPlanPrice(plan.price);
     setModalName("");
     setModalPhone("");
+    setPaymentMethod("");
+    setStep(1);
     setShowPlanModal(true);
   };
 
   const handlePlanSubmit = () => {
-    if (!modalName || !modalPhone) {
-      alert("يرجى إدخال الاسم ورقم الهاتف");
-      return;
+    if (!modalName || !modalPhone) { alert("يرجى إدخال الاسم ورقم الهاتف"); return; }
+    setStep(2);
+  };
+
+  const handlePayment = () => {
+    if (!paymentMethod) { alert("يرجى اختيار طريقة الدفع"); return; }
+    let msg = "";
+    if (paymentMethod === "whatsapp") {
+      msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع عبر واتساب`;
+    } else {
+      msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع بالبطاقة البنكية، أرجو إرسال تفاصيل التحويل`;
     }
-    const msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً`;
-    const url = `https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
     setShowPlanModal(false);
   };
 
@@ -140,6 +141,8 @@ export default function App() {
         .badge-live { animation: badgePulse 1.5s infinite; }
         @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 #00d4aa44} 50%{box-shadow:0 0 0 6px #00d4aa00} }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .pay-option { transition: all 0.2s; cursor: pointer; }
+        .pay-option:hover { transform: translateY(-2px); }
       `}</style>
 
       {/* PLAN MODAL */}
@@ -147,59 +150,112 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setShowPlanModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{
             background: COLORS.card, border: `1px solid ${COLORS.border}`,
-            borderRadius: 20, padding: 32, width: 400, maxWidth: "90vw",
+            borderRadius: 20, padding: 32, width: 420, maxWidth: "90vw",
           }}>
-            <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 8 }}>
-              باقة {planName}
-            </h3>
-            <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>
-              {planPrice} د.ع / شهر — أدخل بياناتك وسنتواصل معك فوراً
-            </p>
+            {step === 1 && (
+              <>
+                <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>باقة {planName}</h3>
+                <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>{planPrice} د.ع / شهر</p>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسمك الكامل</label>
-              <input
-                type="text"
-                placeholder="مثال: محمد علي"
-                value={modalName}
-                onChange={e => setModalName(e.target.value)}
-                style={{
-                  width: "100%", padding: "12px 16px", borderRadius: 10,
-                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-                  color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-                }}
-              />
-            </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسمك الكامل</label>
+                  <input type="text" placeholder="مثال: محمد علي" value={modalName} onChange={e => setModalName(e.target.value)} style={{
+                    width: "100%", padding: "12px 16px", borderRadius: 10,
+                    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                  }} />
+                </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
-              <input
-                type="tel"
-                placeholder="07xx xxx xxxx"
-                value={modalPhone}
-                onChange={e => setModalPhone(e.target.value)}
-                style={{
-                  width: "100%", padding: "12px 16px", borderRadius: 10,
-                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-                  color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-                }}
-              />
-            </div>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
+                  <input type="tel" placeholder="07xx xxx xxxx" value={modalPhone} onChange={e => setModalPhone(e.target.value)} style={{
+                    width: "100%", padding: "12px 16px", borderRadius: 10,
+                    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                  }} />
+                </div>
 
-            <button onClick={handlePlanSubmit} style={{
-              width: "100%", padding: "14px",
-              background: "linear-gradient(90deg, #00d4aa, #0070f3)",
-              border: "none", borderRadius: 10, fontSize: 16,
-              fontWeight: 700, cursor: "pointer", color: "#000",
-              fontFamily: "Tajawal, sans-serif", marginBottom: 12,
-            }}>📱 تواصل معنا على واتساب</button>
+                <button onClick={handlePlanSubmit} style={{
+                  width: "100%", padding: "14px",
+                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                  border: "none", borderRadius: 10, fontSize: 16,
+                  fontWeight: 700, cursor: "pointer", color: "#000",
+                  fontFamily: "Tajawal, sans-serif", marginBottom: 12,
+                }}>التالي — اختر طريقة الدفع ←</button>
 
-            <button onClick={() => setShowPlanModal(false)} style={{
-              width: "100%", padding: "12px",
-              background: "transparent", border: `1px solid ${COLORS.border}`,
-              borderRadius: 10, fontSize: 14, cursor: "pointer", color: COLORS.muted,
-              fontFamily: "Tajawal, sans-serif",
-            }}>إلغاء</button>
+                <button onClick={() => setShowPlanModal(false)} style={{
+                  width: "100%", padding: "12px", background: "transparent",
+                  border: `1px solid ${COLORS.border}`, borderRadius: 10,
+                  fontSize: 14, cursor: "pointer", color: COLORS.muted,
+                  fontFamily: "Tajawal, sans-serif",
+                }}>إلغاء</button>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <button onClick={() => setStep(1)} style={{
+                  background: "transparent", border: "none", color: COLORS.muted,
+                  cursor: "pointer", fontSize: 14, marginBottom: 16, fontFamily: "Tajawal, sans-serif",
+                }}>← رجوع</button>
+
+                <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>اختر طريقة الدفع</h3>
+                <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>باقة {planName} — {planPrice} د.ع / شهر</p>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+                  {[
+                    { id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" },
+                    { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" },
+                  ].map(opt => (
+                    <div
+                      key={opt.id}
+                      className="pay-option"
+                      onClick={() => setPaymentMethod(opt.id)}
+                      style={{
+                        padding: "16px 20px", borderRadius: 12, cursor: "pointer",
+                        background: paymentMethod === opt.id ? COLORS.accentDim : COLORS.surface,
+                        border: `2px solid ${paymentMethod === opt.id ? COLORS.accent : COLORS.border}`,
+                        display: "flex", alignItems: "center", gap: 14,
+                      }}
+                    >
+                      <span style={{ fontSize: 28 }}>{opt.icon}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 15 }}>{opt.label}</div>
+                        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
+                      </div>
+                      {paymentMethod === opt.id && (
+                        <span style={{ marginRight: "auto", color: COLORS.accent, fontSize: 20 }}>✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {paymentMethod === "card" && (
+                  <div style={{
+                    background: "#f59e0b11", border: "1px solid #f59e0b44",
+                    borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+                    fontSize: 13, color: "#f59e0b", lineHeight: 1.7,
+                  }}>
+                    ⚠️ بعد الضغط على تأكيد، ستصلك تفاصيل التحويل على واتساب. أرسل إيصال التحويل لتفعيل الاشتراك.
+                  </div>
+                )}
+
+                <button onClick={handlePayment} style={{
+                  width: "100%", padding: "14px",
+                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                  border: "none", borderRadius: 10, fontSize: 16,
+                  fontWeight: 700, cursor: "pointer", color: "#000",
+                  fontFamily: "Tajawal, sans-serif", marginBottom: 12,
+                }}>📱 تأكيد وإرسال على واتساب</button>
+
+                <button onClick={() => setShowPlanModal(false)} style={{
+                  width: "100%", padding: "12px", background: "transparent",
+                  border: `1px solid ${COLORS.border}`, borderRadius: 10,
+                  fontSize: 14, cursor: "pointer", color: COLORS.muted,
+                  fontFamily: "Tajawal, sans-serif",
+                }}>إلغاء</button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -441,7 +497,6 @@ export default function App() {
                         border: `1px solid ${selectedTime === t ? COLORS.accent : COLORS.border}`,
                         color: selectedTime === t ? COLORS.accent : COLORS.text,
                         fontSize: 13, cursor: "pointer", fontWeight: selectedTime === t ? 700 : 400,
-                        transition: "all 0.2s",
                       }}>{t}</div>
                     ))}
                   </div>
@@ -536,15 +591,13 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); openPlanModal(p); }}
-                    style={{
-                      width: "100%", marginTop: 20, padding: "12px",
-                      background: "linear-gradient(90deg, #00d4aa, #0070f3)",
-                      border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      cursor: "pointer", color: "#000",
-                      fontFamily: "Tajawal, sans-serif", transition: "all 0.2s",
-                    }}>اشترك الآن</button>
+                  <button onClick={e => { e.stopPropagation(); openPlanModal(p); }} style={{
+                    width: "100%", marginTop: 20, padding: "12px",
+                    background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                    border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                    cursor: "pointer", color: "#000",
+                    fontFamily: "Tajawal, sans-serif",
+                  }}>اشترك الآن</button>
                 </div>
               ))}
             </div>
@@ -563,14 +616,12 @@ export default function App() {
               <div style={{ fontSize: 32, marginBottom: 12 }}>🚀</div>
               <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, color: COLORS.white }}>جاهز تبلش؟</h3>
               <p style={{ color: COLORS.muted, marginBottom: 20 }}>ابعتلي رسالة وأساعدك تبني النظام خطوة بخطوة</p>
-              <button
-                onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أبدأ مشروعي", "_blank")}
-                style={{
-                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
-                  border: "none", borderRadius: 10, padding: "14px 40px",
-                  fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
-                  fontFamily: "Tajawal, sans-serif",
-                }}>ابدأ مشروعك الآن ✓</button>
+              <button onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أبدأ مشروعي", "_blank")} style={{
+                background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                border: "none", borderRadius: 10, padding: "14px 40px",
+                fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
+                fontFamily: "Tajawal, sans-serif",
+              }}>ابدأ مشروعك الآن ✓</button>
             </div>
           </div>
         )}
