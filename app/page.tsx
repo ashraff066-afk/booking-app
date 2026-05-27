@@ -9,12 +9,30 @@ const COLORS = {
   border: "#1e2d45",
   accent: "#00d4aa",
   accentDim: "#00d4aa22",
-  accentHover: "#00ffcc",
-  gold: "#f59e0b",
-  red: "#ef4444",
   text: "#e2e8f0",
   muted: "#64748b",
   white: "#ffffff",
+};
+
+const SECTORS_DATA = {
+  clinic: {
+    label: "عيادة",
+    icon: "🏥",
+    color: "#3b82f6",
+    services: ["كشف عام", "استشارة طبية", "فحوصات", "متابعة", "تطعيم", "أشعة"],
+  },
+  salon: {
+    label: "صالون",
+    icon: "✂️",
+    color: "#ec4899",
+    services: ["قص شعر", "صبغة شعر", "عناية بشرة", "مانيكير", "بيديكير", "مساج"],
+  },
+  hotel: {
+    label: "شاليه / فندق",
+    icon: "🏨",
+    color: "#f59e0b",
+    services: ["غرفة عادية", "غرفة ديلوكس", "جناح", "باقة عائلية", "باقة رومانسية", "إيجار يومي"],
+  },
 };
 
 const SECTORS = [
@@ -25,24 +43,17 @@ const SECTORS = [
 
 const PLANS = [
   {
-    name: "أساسي",
-    price: "20,000",
-    color: "#64748b",
+    name: "أساسي", price: "20,000", color: "#64748b",
     features: ["حجز غير محدود", "تذكير واتساب", "لوحة تحكم", "دعم فني"],
     ideal: "صالون صغير",
   },
   {
-    name: "احترافي",
-    price: "50,000",
-    color: "#00d4aa",
+    name: "احترافي", price: "50,000", color: "#00d4aa",
     features: ["كل مزايا الأساسي", "ملف عميل كامل", "تقارير شهرية", "أكثر من موظف"],
-    ideal: "عيادة / صالون كبير",
-    popular: true,
+    ideal: "عيادة / صالون كبير", popular: true,
   },
   {
-    name: "بريميوم",
-    price: "100,000",
-    color: "#f59e0b",
+    name: "بريميوم", price: "100,000", color: "#f59e0b",
     features: ["كل مزايا الاحترافي", "حجز غرف متعدد", "دفع أونلاين", "API مخصص", "مدير حساب"],
     ideal: "فندق / شاليه",
   },
@@ -62,10 +73,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [activeSector, setActiveSector] = useState("clinic");
   const [selectedPlan, setSelectedPlan] = useState("احترافي");
-  const [selectedTime, setSelectedTime] = useState("10:00 ص");
+
+  // Booking form
+  const [bookingSector, setBookingSector] = useState("clinic");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [service, setService] = useState("كشف عام");
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingHour, setBookingHour] = useState("10");
+  const [bookingMinute, setBookingMinute] = useState("00");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -78,24 +94,41 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [step, setStep] = useState(1);
 
+  const currentSector = SECTORS_DATA[bookingSector as keyof typeof SECTORS_DATA];
+
+  const handleSectorChange = (s: string) => {
+    setBookingSector(s);
+    setService(SECTORS_DATA[s as keyof typeof SECTORS_DATA].services[0]);
+  };
+
   const handleBooking = async () => {
-    if (!name || !phone) { alert("يرجى إدخال الاسم ورقم الهاتف"); return; }
+    if (!name || !phone || !bookingDate) {
+      alert("يرجى إدخال جميع البيانات");
+      return;
+    }
     setLoading(true);
+    const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
     const { error } = await supabase.from("bookings").insert([
-      { name, phone, service, time: selectedTime, sector: "clinic", status: "pending" }
+      { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
     ]);
+
+    // إشعار واتساب
+    const msg = `🔔 حجز جديد!\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالقطاع: ${currentSector.label}\nالموعد: ${timeStr}`;
+    window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
+
     setLoading(false);
-    if (error) { alert("حدث خطأ، حاول مرة ثانية"); }
-    else { setSuccess(true); setName(""); setPhone(""); setTimeout(() => setSuccess(false), 3000); }
+    if (error) {
+      alert("حدث خطأ، حاول مرة ثانية");
+    } else {
+      setSuccess(true);
+      setName(""); setPhone(""); setBookingDate("");
+      setTimeout(() => setSuccess(false), 3000);
+    }
   };
 
   const openPlanModal = (plan: { name: string; price: string }) => {
-    setPlanName(plan.name);
-    setPlanPrice(plan.price);
-    setModalName("");
-    setModalPhone("");
-    setPaymentMethod("");
-    setStep(1);
+    setPlanName(plan.name); setPlanPrice(plan.price);
+    setModalName(""); setModalPhone(""); setPaymentMethod(""); setStep(1);
     setShowPlanModal(true);
   };
 
@@ -106,12 +139,9 @@ export default function App() {
 
   const handlePayment = () => {
     if (!paymentMethod) { alert("يرجى اختيار طريقة الدفع"); return; }
-    let msg = "";
-    if (paymentMethod === "whatsapp") {
-      msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع عبر واتساب`;
-    } else {
-      msg = `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع بالبطاقة البنكية، أرجو إرسال تفاصيل التحويل`;
-    }
+    const msg = paymentMethod === "whatsapp"
+      ? `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع عبر واتساب`
+      : `مرحبا، أنا ${modalName} ورقمي ${modalPhone}، أريد الاشتراك بباقة ${planName} بسعر ${planPrice} دينار شهرياً — سأدفع بالبطاقة البنكية`;
     window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
     setShowPlanModal(false);
   };
@@ -143,6 +173,9 @@ export default function App() {
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 999; }
         .pay-option { transition: all 0.2s; cursor: pointer; }
         .pay-option:hover { transform: translateY(-2px); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       `}</style>
 
       {/* PLAN MODAL */}
@@ -156,7 +189,6 @@ export default function App() {
               <>
                 <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>باقة {planName}</h3>
                 <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>{planPrice} د.ع / شهر</p>
-
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسمك الكامل</label>
                   <input type="text" placeholder="مثال: محمد علي" value={modalName} onChange={e => setModalName(e.target.value)} style={{
@@ -165,7 +197,6 @@ export default function App() {
                     color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
                   }} />
                 </div>
-
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
                   <input type="tel" placeholder="07xx xxx xxxx" value={modalPhone} onChange={e => setModalPhone(e.target.value)} style={{
@@ -174,7 +205,6 @@ export default function App() {
                     color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
                   }} />
                 </div>
-
                 <button onClick={handlePlanSubmit} style={{
                   width: "100%", padding: "14px",
                   background: "linear-gradient(90deg, #00d4aa, #0070f3)",
@@ -182,7 +212,6 @@ export default function App() {
                   fontWeight: 700, cursor: "pointer", color: "#000",
                   fontFamily: "Tajawal, sans-serif", marginBottom: 12,
                 }}>التالي — اختر طريقة الدفع ←</button>
-
                 <button onClick={() => setShowPlanModal(false)} style={{
                   width: "100%", padding: "12px", background: "transparent",
                   border: `1px solid ${COLORS.border}`, borderRadius: 10,
@@ -191,55 +220,41 @@ export default function App() {
                 }}>إلغاء</button>
               </>
             )}
-
             {step === 2 && (
               <>
                 <button onClick={() => setStep(1)} style={{
                   background: "transparent", border: "none", color: COLORS.muted,
                   cursor: "pointer", fontSize: 14, marginBottom: 16, fontFamily: "Tajawal, sans-serif",
                 }}>← رجوع</button>
-
                 <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>اختر طريقة الدفع</h3>
                 <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>باقة {planName} — {planPrice} د.ع / شهر</p>
-
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
                   {[
                     { id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" },
                     { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" },
                   ].map(opt => (
-                    <div
-                      key={opt.id}
-                      className="pay-option"
-                      onClick={() => setPaymentMethod(opt.id)}
-                      style={{
-                        padding: "16px 20px", borderRadius: 12, cursor: "pointer",
-                        background: paymentMethod === opt.id ? COLORS.accentDim : COLORS.surface,
-                        border: `2px solid ${paymentMethod === opt.id ? COLORS.accent : COLORS.border}`,
-                        display: "flex", alignItems: "center", gap: 14,
-                      }}
-                    >
+                    <div key={opt.id} className="pay-option" onClick={() => setPaymentMethod(opt.id)} style={{
+                      padding: "16px 20px", borderRadius: 12,
+                      background: paymentMethod === opt.id ? COLORS.accentDim : COLORS.surface,
+                      border: `2px solid ${paymentMethod === opt.id ? COLORS.accent : COLORS.border}`,
+                      display: "flex", alignItems: "center", gap: 14,
+                    }}>
                       <span style={{ fontSize: 28 }}>{opt.icon}</span>
                       <div>
                         <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 15 }}>{opt.label}</div>
                         <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
                       </div>
-                      {paymentMethod === opt.id && (
-                        <span style={{ marginRight: "auto", color: COLORS.accent, fontSize: 20 }}>✓</span>
-                      )}
+                      {paymentMethod === opt.id && <span style={{ marginRight: "auto", color: COLORS.accent, fontSize: 20 }}>✓</span>}
                     </div>
                   ))}
                 </div>
-
                 {paymentMethod === "card" && (
                   <div style={{
                     background: "#f59e0b11", border: "1px solid #f59e0b44",
                     borderRadius: 10, padding: "12px 16px", marginBottom: 16,
                     fontSize: 13, color: "#f59e0b", lineHeight: 1.7,
-                  }}>
-                    ⚠️ بعد الضغط على تأكيد، ستصلك تفاصيل التحويل على واتساب. أرسل إيصال التحويل لتفعيل الاشتراك.
-                  </div>
+                  }}>⚠️ ستصلك تفاصيل التحويل على واتساب. أرسل إيصال التحويل لتفعيل الاشتراك.</div>
                 )}
-
                 <button onClick={handlePayment} style={{
                   width: "100%", padding: "14px",
                   background: "linear-gradient(90deg, #00d4aa, #0070f3)",
@@ -247,7 +262,6 @@ export default function App() {
                   fontWeight: 700, cursor: "pointer", color: "#000",
                   fontFamily: "Tajawal, sans-serif", marginBottom: 12,
                 }}>📱 تأكيد وإرسال على واتساب</button>
-
                 <button onClick={() => setShowPlanModal(false)} style={{
                   width: "100%", padding: "12px", background: "transparent",
                   border: `1px solid ${COLORS.border}`, borderRadius: 10,
@@ -260,6 +274,7 @@ export default function App() {
         </div>
       )}
 
+      {/* NAV */}
       <nav style={{
         background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`,
         padding: "0 24px", display: "flex", alignItems: "center",
@@ -304,45 +319,44 @@ export default function App() {
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }} className="fade-in">
 
+        {/* DASHBOARD */}
         {activeTab === "dashboard" && (
           <div>
             <div style={{
               background: "linear-gradient(135deg, #0d1a2e 0%, #0a1628 50%, #0d1a2e 100%)",
               border: `1px solid ${COLORS.border}`, borderRadius: 20,
-              padding: "48px 40px", marginBottom: 32, position: "relative", overflow: "hidden",
+              padding: "48px 40px", marginBottom: 32,
             }}>
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`,
-                  borderRadius: 20, padding: "6px 16px", marginBottom: 20,
-                }}>
-                  <span className="pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, display: "inline-block" }} />
-                  <span style={{ fontSize: 13, color: COLORS.accent, fontWeight: 600 }}>منصة SaaS للحجوزات — العراق</span>
-                </div>
-                <h1 style={{ fontSize: 42, fontWeight: 900, lineHeight: 1.3, marginBottom: 16 }}>
-                  نظام حجوزات ذكي<br />
-                  <span style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                    لكل قطاع بالعراق
-                  </span>
-                </h1>
-                <p style={{ fontSize: 18, color: COLORS.muted, maxWidth: 500, lineHeight: 1.8, marginBottom: 28 }}>
-                  عيادات، صالونات، فنادق وشاليهات — منصة واحدة، اشتراك شهري، تذكير تلقائي بالواتساب
-                </p>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <button onClick={() => setActiveTab("demo")} style={{
-                    background: "linear-gradient(90deg, #00d4aa, #0070f3)",
-                    border: "none", borderRadius: 10, padding: "14px 28px",
-                    fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
-                    fontFamily: "Tajawal, sans-serif",
-                  }}>جرب المنصة الآن</button>
-                  <button onClick={() => setActiveTab("plans")} style={{
-                    background: "transparent", border: `1px solid ${COLORS.border}`,
-                    borderRadius: 10, padding: "14px 28px", fontSize: 16,
-                    fontWeight: 600, cursor: "pointer", color: COLORS.text,
-                    fontFamily: "Tajawal, sans-serif",
-                  }}>شوف الأسعار</button>
-                </div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`,
+                borderRadius: 20, padding: "6px 16px", marginBottom: 20,
+              }}>
+                <span className="pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, display: "inline-block" }} />
+                <span style={{ fontSize: 13, color: COLORS.accent, fontWeight: 600 }}>منصة SaaS للحجوزات — العراق</span>
+              </div>
+              <h1 style={{ fontSize: 42, fontWeight: 900, lineHeight: 1.3, marginBottom: 16 }}>
+                نظام حجوزات ذكي<br />
+                <span style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  لكل قطاع بالعراق
+                </span>
+              </h1>
+              <p style={{ fontSize: 18, color: COLORS.muted, maxWidth: 500, lineHeight: 1.8, marginBottom: 28 }}>
+                عيادات، صالونات، فنادق وشاليهات — منصة واحدة، اشتراك شهري، تذكير تلقائي بالواتساب
+              </p>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setActiveTab("demo")} style={{
+                  background: "linear-gradient(90deg, #00d4aa, #0070f3)",
+                  border: "none", borderRadius: 10, padding: "14px 28px",
+                  fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000",
+                  fontFamily: "Tajawal, sans-serif",
+                }}>جرب المنصة الآن</button>
+                <button onClick={() => setActiveTab("plans")} style={{
+                  background: "transparent", border: `1px solid ${COLORS.border}`,
+                  borderRadius: 10, padding: "14px 28px", fontSize: 16,
+                  fontWeight: 600, cursor: "pointer", color: COLORS.text,
+                  fontFamily: "Tajawal, sans-serif",
+                }}>شوف الأسعار</button>
               </div>
             </div>
 
@@ -355,7 +369,7 @@ export default function App() {
               ].map((s, i) => (
                 <div key={i} className="card-hover" style={{
                   background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14, padding: "20px 20px",
+                  borderRadius: 14, padding: 20,
                 }}>
                   <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.white }}>{s.value}</div>
@@ -369,13 +383,13 @@ export default function App() {
               <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
                 <h3 style={{ fontWeight: 700, marginBottom: 20, color: COLORS.white }}>القطاعات المدعومة</h3>
                 {SECTORS.map(s => (
-                  <div key={s.id} style={{
+                  <div key={s.id} onClick={() => setActiveSector(s.id)} style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "14px 16px", borderRadius: 10, marginBottom: 10,
                     background: activeSector === s.id ? `${s.color}18` : "#ffffff08",
                     border: `1px solid ${activeSector === s.id ? s.color + "55" : "transparent"}`,
                     cursor: "pointer", transition: "all 0.2s",
-                  }} onClick={() => setActiveSector(s.id)}>
+                  }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <span style={{ fontSize: 24 }}>{s.icon}</span>
                       <div>
@@ -429,21 +443,30 @@ export default function App() {
           </div>
         )}
 
+        {/* DEMO */}
         {activeTab === "demo" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>جرب نظام الحجز</h2>
-            <p style={{ color: COLORS.muted, marginBottom: 28 }}>هذا مثال على شكل صفحة الحجز اللي تشوفها عملائك</p>
+            <p style={{ color: COLORS.muted, marginBottom: 28 }}>اختر قطاعك وسجل حجزك الآن</p>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 28 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    background: "linear-gradient(135deg, #3b82f6, #0070f3)",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
-                  }}>🏥</div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 18, color: COLORS.white }}>عيادة د. أحمد سالم</div>
-                    <div style={{ fontSize: 13, color: COLORS.muted }}>طب عام — بغداد، الكرادة</div>
+
+                {/* SECTOR SELECTOR */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 500 }}>اختر القطاع</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                    {Object.entries(SECTORS_DATA).map(([key, val]) => (
+                      <div key={key} onClick={() => handleSectorChange(key)} style={{
+                        padding: "12px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
+                        background: bookingSector === key ? `${val.color}22` : COLORS.surface,
+                        border: `2px solid ${bookingSector === key ? val.color : COLORS.border}`,
+                        transition: "all 0.2s",
+                      }}>
+                        <div style={{ fontSize: 22 }}>{val.icon}</div>
+                        <div style={{ fontSize: 12, color: bookingSector === key ? val.color : COLORS.muted, fontWeight: 600, marginTop: 4 }}>{val.label}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -452,7 +475,7 @@ export default function App() {
                     background: "#00d4aa22", border: "1px solid #00d4aa",
                     borderRadius: 10, padding: "12px 16px", marginBottom: 16,
                     color: "#00d4aa", fontWeight: 700, textAlign: "center",
-                  }}>✅ تم الحجز بنجاح!</div>
+                  }}>✅ تم الحجز! ستصلك رسالة واتساب للتأكيد</div>
                 )}
 
                 <div style={{ marginBottom: 16 }}>
@@ -474,32 +497,53 @@ export default function App() {
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>نوع الخدمة</label>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>
+                    {currentSector.icon} نوع الخدمة
+                  </label>
                   <select value={service} onChange={e => setService(e.target.value)} style={{
                     width: "100%", padding: "12px 16px", borderRadius: 10,
                     background: COLORS.surface, border: `1px solid ${COLORS.border}`,
                     color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
                   }}>
-                    <option>كشف عام</option>
-                    <option>استشارة طبية</option>
-                    <option>فحوصات</option>
-                    <option>متابعة</option>
+                    {currentSector.services.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
 
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>📅 التاريخ</label>
+                  <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} style={{
+                    width: "100%", padding: "12px 16px", borderRadius: 10,
+                    background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
+                  }} />
+                </div>
+
                 <div style={{ marginBottom: 24 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 500 }}>اختر الموعد</label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                    {["9:00 ص", "10:00 ص", "11:00 ص", "12:00 م", "2:00 م", "3:00 م"].map((t, i) => (
-                      <div key={i} onClick={() => setSelectedTime(t)} style={{
-                        padding: "10px", borderRadius: 8, textAlign: "center",
-                        background: selectedTime === t ? COLORS.accentDim : COLORS.surface,
-                        border: `1px solid ${selectedTime === t ? COLORS.accent : COLORS.border}`,
-                        color: selectedTime === t ? COLORS.accent : COLORS.text,
-                        fontSize: 13, cursor: "pointer", fontWeight: selectedTime === t ? 700 : 400,
-                      }}>{t}</div>
-                    ))}
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>🕐 الوقت</label>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="number" min="0" max="23" value={bookingHour}
+                      onChange={e => setBookingHour(e.target.value.padStart(2, "0"))}
+                      style={{
+                        flex: 1, padding: "12px 16px", borderRadius: 10,
+                        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                        color: COLORS.text, fontSize: 18, outline: "none",
+                        fontFamily: "Tajawal, sans-serif", textAlign: "center",
+                      }}
+                    />
+                    <span style={{ color: COLORS.accent, fontSize: 22, fontWeight: 800 }}>:</span>
+                    <input
+                      type="number" min="0" max="59" value={bookingMinute}
+                      onChange={e => setBookingMinute(e.target.value.padStart(2, "0"))}
+                      style={{
+                        flex: 1, padding: "12px 16px", borderRadius: 10,
+                        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                        color: COLORS.text, fontSize: 18, outline: "none",
+                        fontFamily: "Tajawal, sans-serif", textAlign: "center",
+                      }}
+                    />
                   </div>
+                  <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>الوقت: {bookingHour}:{bookingMinute}</p>
                 </div>
 
                 <button onClick={handleBooking} disabled={loading} style={{
@@ -523,11 +567,11 @@ export default function App() {
                       padding: "10px 14px", maxWidth: "80%", marginRight: "auto",
                       color: "#111", fontSize: 13, lineHeight: 1.6,
                     }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>تذكير موعدك 🏥</div>
-                      <div>السلام عليكم محمد،</div>
-                      <div>موعدك غداً الساعة 10:00 ص</div>
-                      <div>د. أحمد سالم — الكرادة</div>
-                      <div style={{ marginTop: 6, color: "#128C7E", fontWeight: 600 }}>تأكيد الحضور؟ اضغط هنا ✓</div>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>🔔 حجز جديد!</div>
+                      <div>الاسم: محمد علي</div>
+                      <div>الهاتف: 07700000000</div>
+                      <div>الخدمة: كشف عام</div>
+                      <div>الموعد: 2026-05-27 10:30</div>
                     </div>
                   </div>
                 </div>
@@ -535,10 +579,10 @@ export default function App() {
                 <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
                   <h4 style={{ fontWeight: 700, marginBottom: 16, color: COLORS.white }}>⚡ الميزات الرئيسية</h4>
                   {[
-                    "تذكير تلقائي بالواتساب قبل الموعد بساعة",
+                    "إشعار فوري على واتساب عند كل حجز",
+                    "خدمات مخصصة لكل قطاع",
+                    "اختيار حر للوقت 24 ساعة",
                     "لوحة تحكم عربية كاملة",
-                    "رابط حجز خاص بكل عمل",
-                    "تقارير يومية وشهرية",
                     "دعم فني عراقي",
                     "دفع بالدينار العراقي",
                   ].map((f, i) => (
@@ -556,11 +600,12 @@ export default function App() {
           </div>
         )}
 
+        {/* PLANS */}
         {activeTab === "plans" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8, textAlign: "center" }}>باقات الاشتراك</h2>
             <p style={{ color: COLORS.muted, marginBottom: 32, textAlign: "center" }}>اشتراك شهري بالدينار العراقي — ألغِ وقت ما تريد</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, marginBottom: 40 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
               {PLANS.map((p, i) => (
                 <div key={i} className="plan-card" onClick={() => setSelectedPlan(p.name)} style={{
                   background: COLORS.card,
@@ -595,8 +640,7 @@ export default function App() {
                     width: "100%", marginTop: 20, padding: "12px",
                     background: "linear-gradient(90deg, #00d4aa, #0070f3)",
                     border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                    cursor: "pointer", color: "#000",
-                    fontFamily: "Tajawal, sans-serif",
+                    cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif",
                   }}>اشترك الآن</button>
                 </div>
               ))}
@@ -604,6 +648,7 @@ export default function App() {
           </div>
         )}
 
+        {/* START */}
         {activeTab === "start" && (
           <div>
             <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>🗺️ خارطة طريقك</h2>
