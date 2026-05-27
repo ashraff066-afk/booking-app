@@ -67,6 +67,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [activeSector, setActiveSector] = useState("clinic");
   const [selectedPlan, setSelectedPlan] = useState("احترافي");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [bookingSector, setBookingSector] = useState("clinic");
   const [name, setName] = useState("");
@@ -94,7 +95,6 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [step, setStep] = useState(1);
 
-  // كود الخصم
   const [discountCode, setDiscountCode] = useState("");
   const [discountStatus, setDiscountStatus] = useState<"idle"|"loading"|"success"|"error">("idle");
   const [discountMsg, setDiscountMsg] = useState("");
@@ -110,26 +110,27 @@ export default function App() {
 
   const generateBookingNumber = () => "HJ-" + Date.now().toString().slice(-6);
 
-const handleBooking = async () => {
-  if (!name || !phone || !bookingDate) { alert("يرجى إدخال جميع البيانات"); return; }
-  setLoading(true);
-  const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
-  const bNumber = generateBookingNumber();
-  const { error } = await supabase.from("bookings").insert([
-    { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
-  ]);
-  setLoading(false);
-  if (!error) {
-    const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالقطاع: ${currentSector.label}\nالموعد: ${timeStr}`;
-    window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
-    setBookingNumber(bNumber);
-    setBookingSuccess(true);
-    setName(""); setPhone(""); setBookingDate("");
-    setRating(0); setComment(""); setReviewSubmitted(false);
-  } else {
-    alert("حدث خطأ، حاول مجدداً");
-  }
-};
+  const handleBooking = async () => {
+    if (!name || !phone || !bookingDate) { alert("يرجى إدخال جميع البيانات"); return; }
+    setLoading(true);
+    const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
+    const bNumber = generateBookingNumber();
+    const { error } = await supabase.from("bookings").insert([
+      { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
+    ]);
+    setLoading(false);
+    if (!error) {
+      const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالقطاع: ${currentSector.label}\nالموعد: ${timeStr}`;
+      window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
+      setBookingNumber(bNumber);
+      setBookingSuccess(true);
+      setName(""); setPhone(""); setBookingDate("");
+      setRating(0); setComment(""); setReviewSubmitted(false);
+    } else {
+      alert("حدث خطأ، حاول مجدداً");
+    }
+  };
+
   const handleReview = async () => {
     if (rating === 0) { alert("يرجى اختيار تقييم"); return; }
     setReviewLoading(true);
@@ -139,46 +140,23 @@ const handleBooking = async () => {
   };
 
   const openPlanModal = (plan: { name: string; price: string; hasDiscount?: boolean }) => {
-    setPlanName(plan.name);
-    setPlanPrice(plan.price);
-    setPlanHasDiscount(!!plan.hasDiscount);
+    setPlanName(plan.name); setPlanPrice(plan.price); setPlanHasDiscount(!!plan.hasDiscount);
     setModalName(""); setModalPhone(""); setPaymentMethod("");
     setDiscountCode(""); setDiscountStatus("idle"); setDiscountMsg("");
     setDiscountApplied(false); setDiscountValue("");
-    setStep(1);
-    setShowPlanModal(true);
+    setStep(1); setShowPlanModal(true);
   };
 
   const handleCheckDiscount = async () => {
     if (!discountCode.trim()) return;
     setDiscountStatus("loading");
-    const { data, error } = await supabase
-      .from("discount_codes")
-      .select("*")
-      .eq("code", discountCode.toUpperCase().trim())
-      .eq("active", true)
-      .single();
-
-    if (error || !data) {
-      setDiscountStatus("error");
-      setDiscountMsg("كود الخصم غير صحيح أو منتهي");
-      return;
-    }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      setDiscountStatus("error");
-      setDiscountMsg("انتهت صلاحية هذا الكود");
-      return;
-    }
-    if (data.max_uses !== null && data.used_count >= data.max_uses) {
-      setDiscountStatus("error");
-      setDiscountMsg("تم استنفاد هذا الكود");
-      return;
-    }
+    const { data, error } = await supabase.from("discount_codes").select("*").eq("code", discountCode.toUpperCase().trim()).eq("active", true).single();
+    if (error || !data) { setDiscountStatus("error"); setDiscountMsg("كود الخصم غير صحيح أو منتهي"); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setDiscountStatus("error"); setDiscountMsg("انتهت صلاحية هذا الكود"); return; }
+    if (data.max_uses !== null && data.used_count >= data.max_uses) { setDiscountStatus("error"); setDiscountMsg("تم استنفاد هذا الكود"); return; }
     const val = data.type === "percent" ? `${data.value}%` : `${data.value.toLocaleString()} د.ع`;
-    setDiscountStatus("success");
-    setDiscountMsg(`✅ كود صحيح! خصم ${val} على سعر الباقة`);
-    setDiscountApplied(true);
-    setDiscountValue(val);
+    setDiscountStatus("success"); setDiscountMsg(`✅ كود صحيح! خصم ${val} على سعر الباقة`);
+    setDiscountApplied(true); setDiscountValue(val);
   };
 
   const handlePlanSubmit = () => {
@@ -198,47 +176,45 @@ const handleBooking = async () => {
 
   if (bookingSuccess) {
     return (
-      <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal', 'Cairo', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal', 'Cairo', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
-        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.accent}44`, borderRadius: 24, padding: 40, maxWidth: 500, width: "100%", textAlign: "center", boxShadow: "0 0 60px #00d4aa22" }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
-          <h2 style={{ fontSize: 26, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>تم الحجز بنجاح!</h2>
-          <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24, lineHeight: 1.7 }}>شكراً! تم تسجيل حجزك وسيتم التواصل معك على واتساب للتأكيد.</p>
-          <div style={{ background: COLORS.accentDim, border: `2px solid ${COLORS.accent}`, borderRadius: 14, padding: "16px 24px", marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>رقم حجزك</div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.accent, letterSpacing: 2 }}>{bookingNumber}</div>
+        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.accent}44`, borderRadius: 24, padding: 24, maxWidth: 500, width: "100%", textAlign: "center", boxShadow: "0 0 60px #00d4aa22" }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>🎉</div>
+          <h2 style={{ fontSize: 22, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>تم الحجز بنجاح!</h2>
+          <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.7 }}>شكراً! تم تسجيل حجزك وسيتم التواصل معك على واتساب للتأكيد.</p>
+          <div style={{ background: COLORS.accentDim, border: `2px solid ${COLORS.accent}`, borderRadius: 14, padding: "14px 20px", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>رقم حجزك</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: COLORS.accent, letterSpacing: 2 }}>{bookingNumber}</div>
             <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>احتفظ بهذا الرقم للمتابعة</div>
           </div>
-          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 24, textAlign: "right" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-              <span style={{ color: COLORS.accent, fontWeight: 600 }}>{service}</span>
-              <span style={{ color: COLORS.muted, fontSize: 13 }}>الخدمة</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-              <span style={{ color: COLORS.white }}>{currentSector.icon} {currentSector.label}</span>
-              <span style={{ color: COLORS.muted, fontSize: 13 }}>القطاع</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-              <span style={{ color: COLORS.white }}>{bookingDate} {bookingHour}:{bookingMinute}</span>
-              <span style={{ color: COLORS.muted, fontSize: 13 }}>الموعد</span>
-            </div>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 20, textAlign: "right" }}>
+            {[
+              { label: "الخدمة", value: service, color: COLORS.accent },
+              { label: "القطاع", value: `${currentSector.icon} ${currentSector.label}`, color: COLORS.white },
+              { label: "الموعد", value: `${bookingDate} ${bookingHour}:${bookingMinute}`, color: COLORS.white },
+            ].map((row, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: i < 2 ? `1px solid ${COLORS.border}` : "none" }}>
+                <span style={{ color: row.color, fontWeight: 600, fontSize: 13 }}>{row.value}</span>
+                <span style={{ color: COLORS.muted, fontSize: 12 }}>{row.label}</span>
+              </div>
+            ))}
           </div>
           {!reviewSubmitted ? (
-            <div style={{ background: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 20, border: `1px solid ${COLORS.border}` }}>
-              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4 }}>قيّم تجربتك ⭐</h4>
-              <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>رأيك يساعدنا نتحسن!</p>
-              <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ background: COLORS.surface, borderRadius: 16, padding: 16, marginBottom: 16, border: `1px solid ${COLORS.border}` }}>
+              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>قيّم تجربتك ⭐</h4>
+              <p style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>رأيك يساعدنا نتحسن!</p>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 12 }}>
                 {[1,2,3,4,5].map(star => (
-                  <span key={star} onClick={() => setRating(star)} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} style={{ fontSize: 36, cursor: "pointer", transition: "transform 0.1s", transform: (hoverRating || rating) >= star ? "scale(1.2)" : "scale(1)", filter: (hoverRating || rating) >= star ? "none" : "grayscale(1)" }}>⭐</span>
+                  <span key={star} onClick={() => setRating(star)} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} style={{ fontSize: 32, cursor: "pointer", transition: "transform 0.1s", transform: (hoverRating || rating) >= star ? "scale(1.2)" : "scale(1)", filter: (hoverRating || rating) >= star ? "none" : "grayscale(1)" }}>⭐</span>
                 ))}
               </div>
-              <textarea placeholder="اكتب تعليقك هنا (اختياري)..." value={comment} onChange={e => setComment(e.target.value)} rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal, sans-serif", resize: "none", marginBottom: 12 }} />
-              <button onClick={handleReview} disabled={reviewLoading} style={{ width: "100%", padding: "12px", background: rating > 0 ? "linear-gradient(90deg, #00d4aa, #0070f3)" : COLORS.surface, border: `1px solid ${rating > 0 ? COLORS.accent : COLORS.border}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: rating > 0 ? "pointer" : "not-allowed", color: rating > 0 ? "#000" : COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>{reviewLoading ? "جاري الإرسال..." : "إرسال التقييم"}</button>
+              <textarea placeholder="اكتب تعليقك هنا (اختياري)..." value={comment} onChange={e => setComment(e.target.value)} rows={2} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal, sans-serif", resize: "none", marginBottom: 10 }} />
+              <button onClick={handleReview} disabled={reviewLoading} style={{ width: "100%", padding: "11px", background: rating > 0 ? "linear-gradient(90deg, #00d4aa, #0070f3)" : COLORS.surface, border: `1px solid ${rating > 0 ? COLORS.accent : COLORS.border}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: rating > 0 ? "pointer" : "not-allowed", color: rating > 0 ? "#000" : COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>{reviewLoading ? "جاري الإرسال..." : "إرسال التقييم"}</button>
             </div>
           ) : (
-            <div style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 14, padding: 16, marginBottom: 20, color: COLORS.accent, fontWeight: 700 }}>✅ شكراً على تقييمك! {"⭐".repeat(rating)}</div>
+            <div style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 14, padding: 14, marginBottom: 16, color: COLORS.accent, fontWeight: 700, fontSize: 14 }}>✅ شكراً على تقييمك! {"⭐".repeat(rating)}</div>
           )}
-          <button onClick={() => { setBookingSuccess(false); setActiveTab("demo"); }} style={{ width: "100%", padding: "14px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>حجز جديد</button>
+          <button onClick={() => { setBookingSuccess(false); setActiveTab("demo"); }} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>حجز جديد</button>
         </div>
       </div>
     );
@@ -252,12 +228,6 @@ const handleBooking = async () => {
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0e1a; }
         ::-webkit-scrollbar-thumb { background: #1e2d45; border-radius: 3px; }
-        .tab-btn { transition: all 0.2s; }
-        .tab-btn:hover { background: #1a2235 !important; }
-        .card-hover { transition: all 0.25s; cursor: pointer; }
-        .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 40px #00d4aa18; border-color: #00d4aa55 !important; }
-        .plan-card { transition: all 0.25s; cursor: pointer; }
-        .plan-card:hover { transform: translateY(-4px); }
         .glow { box-shadow: 0 0 30px #00d4aa33, 0 0 60px #00d4aa11; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
@@ -265,180 +235,186 @@ const handleBooking = async () => {
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         .badge-live { animation: badgePulse 1.5s infinite; }
         @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 #00d4aa44} 50%{box-shadow:0 0 0 6px #00d4aa00} }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #00000088; display: flex; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
         .pay-option { transition: all 0.2s; cursor: pointer; }
         .pay-option:hover { transform: translateY(-2px); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
         input[type="number"] { -moz-appearance: textfield; }
         input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: flex !important; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .sectors-grid { grid-template-columns: 1fr !important; }
+          .booking-grid { grid-template-columns: 1fr !important; }
+          .plans-grid { grid-template-columns: 1fr !important; }
+          .hero-title { font-size: 28px !important; }
+          .hero-padding { padding: 28px 20px !important; }
+        }
+        @media (min-width: 769px) {
+          .mobile-menu-btn { display: none !important; }
+          .mobile-menu { display: none !important; }
+        }
       `}</style>
 
       {showPlanModal && (
         <div className="modal-overlay" onClick={() => setShowPlanModal(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 32, width: 420, maxWidth: "90vw" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
             {step === 1 && (
               <>
-                <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>باقة {planName}</h3>
-                <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24 }}>{planPrice} د.ع / شهر</p>
-                <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontWeight: 800, fontSize: 18, color: COLORS.white, marginBottom: 4 }}>باقة {planName}</h3>
+                <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20 }}>{planPrice} د.ع / شهر</p>
+                <div style={{ marginBottom: 14 }}>
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسمك الكامل</label>
                   <input type="text" placeholder="مثال: محمد علي" value={modalName} onChange={e => setModalName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
                 </div>
-                <div style={{ marginBottom: planHasDiscount ? 16 : 24 }}>
+                <div style={{ marginBottom: planHasDiscount ? 14 : 20 }}>
                   <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
                   <input type="tel" placeholder="07xx xxx xxxx" value={modalPhone} onChange={e => setModalPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
                 </div>
-
                 {planHasDiscount && (
-                  <div style={{ marginBottom: 24 }}>
+                  <div style={{ marginBottom: 20 }}>
                     <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>🏷️ كود الخصم (اختياري)</label>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <input
-                        type="text"
-                        placeholder="مثال: EID50"
-                        value={discountCode}
-                        onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountStatus("idle"); setDiscountMsg(""); setDiscountApplied(false); }}
-                        disabled={discountApplied}
-                        style={{ flex: 1, padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${discountStatus === "success" ? "#00d4aa" : discountStatus === "error" ? "#ef4444" : COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif", textTransform: "uppercase" }}
-                      />
+                      <input type="text" placeholder="مثال: EID50" value={discountCode} onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountStatus("idle"); setDiscountMsg(""); setDiscountApplied(false); }} disabled={discountApplied} style={{ flex: 1, padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${discountStatus === "success" ? "#00d4aa" : discountStatus === "error" ? "#ef4444" : COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
                       {!discountApplied ? (
-                        <button onClick={handleCheckDiscount} disabled={discountStatus === "loading" || !discountCode.trim()} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "0 16px", color: COLORS.accent, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13, whiteSpace: "nowrap" }}>
-                          {discountStatus === "loading" ? "..." : "تطبيق"}
-                        </button>
+                        <button onClick={handleCheckDiscount} disabled={discountStatus === "loading" || !discountCode.trim()} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "0 14px", color: COLORS.accent, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13, whiteSpace: "nowrap" }}>{discountStatus === "loading" ? "..." : "تطبيق"}</button>
                       ) : (
-                        <button onClick={() => { setDiscountApplied(false); setDiscountCode(""); setDiscountStatus("idle"); setDiscountMsg(""); }} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "0 16px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13 }}>إلغاء</button>
+                        <button onClick={() => { setDiscountApplied(false); setDiscountCode(""); setDiscountStatus("idle"); setDiscountMsg(""); }} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "0 14px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13 }}>إلغاء</button>
                       )}
                     </div>
-                    {discountMsg && (
-                      <p style={{ fontSize: 12, marginTop: 6, color: discountStatus === "success" ? "#00d4aa" : "#ef4444" }}>{discountMsg}</p>
-                    )}
+                    {discountMsg && <p style={{ fontSize: 12, marginTop: 6, color: discountStatus === "success" ? "#00d4aa" : "#ef4444" }}>{discountMsg}</p>}
                   </div>
                 )}
-
-                <button onClick={handlePlanSubmit} style={{ width: "100%", padding: "14px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif", marginBottom: 12 }}>التالي — اختر طريقة الدفع ←</button>
-                <button onClick={() => setShowPlanModal(false)} style={{ width: "100%", padding: "12px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 14, cursor: "pointer", color: COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
+                <button onClick={handlePlanSubmit} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif", marginBottom: 10 }}>التالي — اختر طريقة الدفع ←</button>
+                <button onClick={() => setShowPlanModal(false)} style={{ width: "100%", padding: "11px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 13, cursor: "pointer", color: COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
               </>
             )}
             {step === 2 && (
               <>
-                <button onClick={() => setStep(1)} style={{ background: "transparent", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, marginBottom: 16, fontFamily: "Tajawal, sans-serif" }}>← رجوع</button>
-                <h3 style={{ fontWeight: 800, fontSize: 20, color: COLORS.white, marginBottom: 4 }}>اختر طريقة الدفع</h3>
-                <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: discountApplied ? 8 : 24 }}>باقة {planName} — {planPrice} د.ع / شهر</p>
-                {discountApplied && (
-                  <div style={{ background: "#00d4aa11", border: "1px solid #00d4aa44", borderRadius: 10, padding: "8px 14px", marginBottom: 16, fontSize: 13, color: "#00d4aa" }}>
-                    🏷️ كود خصم مطبّق: {discountCode} — خصم {discountValue}
-                  </div>
-                )}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
-                  {[
-                    { id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" },
-                    { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" },
-                  ].map(opt => (
-                    <div key={opt.id} className="pay-option" onClick={() => setPaymentMethod(opt.id)} style={{ padding: "16px 20px", borderRadius: 12, background: paymentMethod === opt.id ? COLORS.accentDim : COLORS.surface, border: `2px solid ${paymentMethod === opt.id ? COLORS.accent : COLORS.border}`, display: "flex", alignItems: "center", gap: 14 }}>
-                      <span style={{ fontSize: 28 }}>{opt.icon}</span>
+                <button onClick={() => setStep(1)} style={{ background: "transparent", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, marginBottom: 14, fontFamily: "Tajawal, sans-serif" }}>← رجوع</button>
+                <h3 style={{ fontWeight: 800, fontSize: 18, color: COLORS.white, marginBottom: 4 }}>اختر طريقة الدفع</h3>
+                <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: discountApplied ? 8 : 20 }}>باقة {planName} — {planPrice} د.ع / شهر</p>
+                {discountApplied && <div style={{ background: "#00d4aa11", border: "1px solid #00d4aa44", borderRadius: 10, padding: "8px 14px", marginBottom: 14, fontSize: 13, color: "#00d4aa" }}>🏷️ كود خصم: {discountCode} — خصم {discountValue}</div>}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+                  {[{ id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" }, { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" }].map(opt => (
+                    <div key={opt.id} className="pay-option" onClick={() => setPaymentMethod(opt.id)} style={{ padding: "14px 16px", borderRadius: 12, background: paymentMethod === opt.id ? COLORS.accentDim : COLORS.surface, border: `2px solid ${paymentMethod === opt.id ? COLORS.accent : COLORS.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 24 }}>{opt.icon}</span>
                       <div>
-                        <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 15 }}>{opt.label}</div>
-                        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
+                        <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 14 }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
                       </div>
-                      {paymentMethod === opt.id && <span style={{ marginRight: "auto", color: COLORS.accent, fontSize: 20 }}>✓</span>}
+                      {paymentMethod === opt.id && <span style={{ marginRight: "auto", color: COLORS.accent, fontSize: 18 }}>✓</span>}
                     </div>
                   ))}
                 </div>
-                {paymentMethod === "card" && (
-                  <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#f59e0b", lineHeight: 1.7 }}>⚠️ ستصلك تفاصيل التحويل على واتساب. أرسل إيصال التحويل لتفعيل الاشتراك.</div>
-                )}
-                <button onClick={handlePayment} style={{ width: "100%", padding: "14px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif", marginBottom: 12 }}>📱 تأكيد وإرسال على واتساب</button>
-                <button onClick={() => setShowPlanModal(false)} style={{ width: "100%", padding: "12px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 14, cursor: "pointer", color: COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
+                {paymentMethod === "card" && <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#f59e0b", lineHeight: 1.7 }}>⚠️ ستصلك تفاصيل التحويل على واتساب.</div>}
+                <button onClick={handlePayment} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif", marginBottom: 10 }}>📱 تأكيد وإرسال على واتساب</button>
+                <button onClick={() => setShowPlanModal(false)} style={{ width: "100%", padding: "11px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 13, cursor: "pointer", color: COLORS.muted, fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
               </>
             )}
           </div>
         </div>
       )}
 
-      <nav style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #00d4aa, #0070f3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900 }}>ح</div>
-          <span style={{ fontSize: 20, fontWeight: 800, color: COLORS.white }}>حجوزاتي</span>
-          <span style={{ fontSize: 10, background: COLORS.accent, color: "#000", padding: "2px 8px", borderRadius: 20, fontWeight: 700, marginRight: 4 }}>BETA</span>
+      {/* NAV */}
+      <nav style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60, position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, #00d4aa, #0070f3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900 }}>ح</div>
+          <span style={{ fontSize: 18, fontWeight: 800, color: COLORS.white }}>حجوزاتي</span>
+          <span style={{ fontSize: 9, background: COLORS.accent, color: "#000", padding: "2px 6px", borderRadius: 20, fontWeight: 700 }}>BETA</span>
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
+
+        {/* Desktop Nav */}
+        <div className="desktop-nav" style={{ display: "flex", gap: 4 }}>
           {[{ id: "dashboard", label: "لوحة التحكم" }, { id: "demo", label: "جرب المنصة" }, { id: "plans", label: "الأسعار" }, { id: "start", label: "ابدأ الآن" }].map(t => (
-            <button key={t.id} className="tab-btn" onClick={() => setActiveTab(t.id)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal, sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.muted, borderBottom: activeTab === t.id ? `2px solid ${COLORS.accent}` : "2px solid transparent" }}>{t.label}</button>
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontFamily: "Tajawal, sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.muted, borderBottom: activeTab === t.id ? `2px solid ${COLORS.accent}` : "2px solid transparent" }}>{t.label}</button>
           ))}
         </div>
-        <div style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", padding: "8px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", color: "#000" }}>ابدأ مجاناً</div>
+
+        {/* Mobile Menu Button */}
+        <button className="mobile-menu-btn" onClick={() => setMenuOpen(!menuOpen)} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 10px", color: COLORS.text, cursor: "pointer", fontSize: 18, display: "none" }}>☰</button>
       </nav>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }} className="fade-in">
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="mobile-menu" style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 16px" }}>
+          {[{ id: "dashboard", label: "🏠 لوحة التحكم" }, { id: "demo", label: "🎯 جرب المنصة" }, { id: "plans", label: "💰 الأسعار" }, { id: "start", label: "🚀 ابدأ الآن" }].map(t => (
+            <button key={t.id} onClick={() => { setActiveTab(t.id); setMenuOpen(false); }} style={{ display: "block", width: "100%", padding: "12px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal, sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.text, textAlign: "right", marginBottom: 4 }}>{t.label}</button>
+          ))}
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }} className="fade-in">
 
         {activeTab === "dashboard" && (
           <div>
-            <div style={{ background: "linear-gradient(135deg, #0d1a2e 0%, #0a1628 50%, #0d1a2e 100%)", border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: "48px 40px", marginBottom: 32 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`, borderRadius: 20, padding: "6px 16px", marginBottom: 20 }}>
-                <span className="pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, display: "inline-block" }} />
-                <span style={{ fontSize: 13, color: COLORS.accent, fontWeight: 600 }}>منصة SaaS للحجوزات — العراق</span>
+            <div className="hero-padding" style={{ background: "linear-gradient(135deg, #0d1a2e 0%, #0a1628 50%, #0d1a2e 100%)", border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: "40px 32px", marginBottom: 24 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`, borderRadius: 20, padding: "5px 14px", marginBottom: 16 }}>
+                <span className="pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.accent, display: "inline-block" }} />
+                <span style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600 }}>منصة SaaS للحجوزات — العراق</span>
               </div>
-              <h1 style={{ fontSize: 42, fontWeight: 900, lineHeight: 1.3, marginBottom: 16 }}>
+              <h1 className="hero-title" style={{ fontSize: 36, fontWeight: 900, lineHeight: 1.3, marginBottom: 14 }}>
                 نظام حجوزات ذكي<br />
                 <span style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>لكل قطاع بالعراق</span>
               </h1>
-              <p style={{ fontSize: 18, color: COLORS.muted, maxWidth: 500, lineHeight: 1.8, marginBottom: 28 }}>عيادات، صالونات، فنادق وشاليهات — منصة واحدة، اشتراك شهري، تذكير تلقائي بالواتساب</p>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button onClick={() => setActiveTab("demo")} style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, padding: "14px 28px", fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>جرب المنصة الآن</button>
-                <button onClick={() => setActiveTab("plans")} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "14px 28px", fontSize: 16, fontWeight: 600, cursor: "pointer", color: COLORS.text, fontFamily: "Tajawal, sans-serif" }}>شوف الأسعار</button>
+              <p style={{ fontSize: 15, color: COLORS.muted, lineHeight: 1.8, marginBottom: 24 }}>عيادات، صالونات، فنادق وشاليهات — منصة واحدة، اشتراك شهري، تذكير تلقائي بالواتساب</p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button onClick={() => setActiveTab("demo")} style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, padding: "12px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>جرب المنصة الآن</button>
+                <button onClick={() => setActiveTab("plans")} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 24px", fontSize: 15, fontWeight: 600, cursor: "pointer", color: COLORS.text, fontFamily: "Tajawal, sans-serif" }}>شوف الأسعار</button>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 32 }}>
+            <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
               {[
                 { label: "عملاء مسجلين", value: "1,240", icon: "👥", trend: "+12%" },
                 { label: "حجوزات اليوم", value: "74", icon: "📅", trend: "+8%" },
                 { label: "الإيرادات (د.ع)", value: "5.7M", icon: "💰", trend: "+22%" },
                 { label: "نسبة الرضا", value: "98%", icon: "⭐", trend: "+2%" },
               ].map((s, i) => (
-                <div key={i} className="card-hover" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 20 }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.white }}>{s.value}</div>
-                  <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: COLORS.accent, marginTop: 6, fontWeight: 600 }}>{s.trend} هذا الشهر</div>
+                <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{s.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.white }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3 }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: COLORS.accent, marginTop: 4, fontWeight: 600 }}>{s.trend} هذا الشهر</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-                <h3 style={{ fontWeight: 700, marginBottom: 20, color: COLORS.white }}>القطاعات المدعومة</h3>
+            <div className="sectors-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20 }}>
+                <h3 style={{ fontWeight: 700, marginBottom: 16, color: COLORS.white, fontSize: 15 }}>القطاعات المدعومة</h3>
                 {SECTORS.map(s => (
-                  <div key={s.id} onClick={() => setActiveSector(s.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, marginBottom: 10, background: activeSector === s.id ? `${s.color}18` : "#ffffff08", border: `1px solid ${activeSector === s.id ? s.color + "55" : "transparent"}`, cursor: "pointer", transition: "all 0.2s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 24 }}>{s.icon}</span>
+                  <div key={s.id} onClick={() => setActiveSector(s.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 10, marginBottom: 8, background: activeSector === s.id ? `${s.color}18` : "#ffffff08", border: `1px solid ${activeSector === s.id ? s.color + "55" : "transparent"}`, cursor: "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{s.icon}</span>
                       <div>
-                        <div style={{ fontWeight: 600, color: COLORS.white }}>{s.label}</div>
-                        <div style={{ fontSize: 12, color: COLORS.muted }}>{s.bookings} حجز اليوم</div>
+                        <div style={{ fontWeight: 600, color: COLORS.white, fontSize: 13 }}>{s.label}</div>
+                        <div style={{ fontSize: 11, color: COLORS.muted }}>{s.bookings} حجز اليوم</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "left" }}>
-                      <div style={{ fontSize: 13, color: s.color, fontWeight: 700 }}>{s.revenue}</div>
-                      <div style={{ fontSize: 11, color: COLORS.muted }}>دينار / شهر</div>
+                      <div style={{ fontSize: 12, color: s.color, fontWeight: 700 }}>{s.revenue}</div>
+                      <div style={{ fontSize: 10, color: COLORS.muted }}>دينار / شهر</div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                  <h3 style={{ fontWeight: 700, color: COLORS.white }}>آخر الحجوزات</h3>
-                  <span className="badge-live" style={{ background: COLORS.accentDim, color: COLORS.accent, fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: 600, border: `1px solid ${COLORS.accent}44` }}>● مباشر</span>
+              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <h3 style={{ fontWeight: 700, color: COLORS.white, fontSize: 15 }}>آخر الحجوزات</h3>
+                  <span className="badge-live" style={{ background: COLORS.accentDim, color: COLORS.accent, fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 600, border: `1px solid ${COLORS.accent}44` }}>● مباشر</span>
                 </div>
                 {BOOKINGS_DEMO.map((b, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < BOOKINGS_DEMO.length - 1 ? `1px solid ${COLORS.border}` : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: COLORS.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{b.sector}</div>
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < BOOKINGS_DEMO.length - 1 ? `1px solid ${COLORS.border}` : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: COLORS.surface, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{b.sector}</div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.white }}>{b.name}</div>
-                        <div style={{ fontSize: 12, color: COLORS.muted }}>{b.service} · {b.time}</div>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: COLORS.white }}>{b.name}</div>
+                        <div style={{ fontSize: 11, color: COLORS.muted }}>{b.service}</div>
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 600, background: `${statusColor[b.status]}22`, color: statusColor[b.status], border: `1px solid ${statusColor[b.status]}44` }}>{statusLabel[b.status]}</span>
+                    <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, fontWeight: 600, background: `${statusColor[b.status]}22`, color: statusColor[b.status], border: `1px solid ${statusColor[b.status]}44` }}>{statusLabel[b.status]}</span>
                   </div>
                 ))}
               </div>
@@ -448,73 +424,74 @@ const handleBooking = async () => {
 
         {activeTab === "demo" && (
           <div>
-            <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>جرب نظام الحجز</h2>
-            <p style={{ color: COLORS.muted, marginBottom: 28 }}>اختر قطاعك وسجل حجزك الآن</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 28 }}>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 500 }}>اختر القطاع</label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>جرب نظام الحجز</h2>
+            <p style={{ color: COLORS.muted, marginBottom: 20, fontSize: 14 }}>اختر قطاعك وسجل حجزك الآن</p>
+            <div className="booking-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20 }}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 8, fontWeight: 500 }}>اختر القطاع</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
                     {Object.entries(SECTORS_DATA).map(([key, val]) => (
-                      <div key={key} onClick={() => handleSectorChange(key)} style={{ padding: "12px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer", background: bookingSector === key ? `${val.color}22` : COLORS.surface, border: `2px solid ${bookingSector === key ? val.color : COLORS.border}`, transition: "all 0.2s" }}>
-                        <div style={{ fontSize: 22 }}>{val.icon}</div>
-                        <div style={{ fontSize: 12, color: bookingSector === key ? val.color : COLORS.muted, fontWeight: 600, marginTop: 4 }}>{val.label}</div>
+                      <div key={key} onClick={() => handleSectorChange(key)} style={{ padding: "10px 6px", borderRadius: 10, textAlign: "center", cursor: "pointer", background: bookingSector === key ? `${val.color}22` : COLORS.surface, border: `2px solid ${bookingSector === key ? val.color : COLORS.border}` }}>
+                        <div style={{ fontSize: 20 }}>{val.icon}</div>
+                        <div style={{ fontSize: 11, color: bookingSector === key ? val.color : COLORS.muted, fontWeight: 600, marginTop: 3 }}>{val.label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>اسمك الكامل</label>
-                  <input type="text" placeholder="مثال: محمد علي" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>رقم الهاتف (واتساب)</label>
-                  <input type="tel" placeholder="07xx xxx xxxx" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>{currentSector.icon} نوع الخدمة</label>
-                  <select value={service} onChange={e => setService(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
+                {[
+                  { label: "اسمك الكامل", type: "text", placeholder: "مثال: محمد علي", value: name, onChange: (e: any) => setName(e.target.value) },
+                  { label: "رقم الهاتف (واتساب)", type: "tel", placeholder: "07xx xxx xxxx", value: phone, onChange: (e: any) => setPhone(e.target.value) },
+                ].map((field, i) => (
+                  <div key={i} style={{ marginBottom: 14 }}>
+                    <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 5, fontWeight: 500 }}>{field.label}</label>
+                    <input type={field.type} placeholder={field.placeholder} value={field.value} onChange={field.onChange} style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+                  </div>
+                ))}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 5, fontWeight: 500 }}>{currentSector.icon} نوع الخدمة</label>
+                  <select value={service} onChange={e => setService(e.target.value)} style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
                     {currentSector.services.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>📅 التاريخ</label>
-                  <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 5, fontWeight: 500 }}>📅 التاريخ</label>
+                  <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
                 </div>
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>🕐 الوقت</label>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 5, fontWeight: 500 }}>🕐 الوقت</label>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="number" min="0" max="23" value={bookingHour} onChange={e => setBookingHour(e.target.value.padStart(2, "0"))} style={{ flex: 1, padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 18, outline: "none", fontFamily: "Tajawal, sans-serif", textAlign: "center" }} />
-                    <span style={{ color: COLORS.accent, fontSize: 22, fontWeight: 800 }}>:</span>
-                    <input type="number" min="0" max="59" value={bookingMinute} onChange={e => setBookingMinute(e.target.value.padStart(2, "0"))} style={{ flex: 1, padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 18, outline: "none", fontFamily: "Tajawal, sans-serif", textAlign: "center" }} />
+                    <input type="number" min="0" max="23" value={bookingHour} onChange={e => setBookingHour(e.target.value.padStart(2, "0"))} style={{ flex: 1, padding: "11px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 18, outline: "none", fontFamily: "Tajawal, sans-serif", textAlign: "center" }} />
+                    <span style={{ color: COLORS.accent, fontSize: 20, fontWeight: 800 }}>:</span>
+                    <input type="number" min="0" max="59" value={bookingMinute} onChange={e => setBookingMinute(e.target.value.padStart(2, "0"))} style={{ flex: 1, padding: "11px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 18, outline: "none", fontFamily: "Tajawal, sans-serif", textAlign: "center" }} />
                   </div>
-                  <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>الوقت: {bookingHour}:{bookingMinute}</p>
+                  <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 5 }}>الوقت: {bookingHour}:{bookingMinute}</p>
                 </div>
-                <button onClick={handleBooking} disabled={loading} style={{ width: "100%", padding: "14px", background: loading ? "#666" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>{loading ? "جاري الحجز..." : "✅ تأكيد الحجز"}</button>
+                <button onClick={handleBooking} disabled={loading} style={{ width: "100%", padding: "13px", background: loading ? "#666" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>{loading ? "جاري الحجز..." : "✅ تأكيد الحجز"}</button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontSize: 24 }}>💬</span>
-                    <span style={{ fontWeight: 700, color: COLORS.white }}>إشعار واتساب فوري</span>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <span style={{ fontSize: 22 }}>💬</span>
+                    <span style={{ fontWeight: 700, color: COLORS.white, fontSize: 14 }}>إشعار واتساب فوري</span>
                   </div>
-                  <div style={{ background: "#075e54", borderRadius: 12, padding: 16 }}>
-                    <div style={{ background: "#dcf8c6", borderRadius: "12px 12px 2px 12px", padding: "10px 14px", maxWidth: "85%", marginRight: "auto", color: "#111", fontSize: 13, lineHeight: 1.7 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>🔔 حجز جديد!</div>
+                  <div style={{ background: "#075e54", borderRadius: 12, padding: 12 }}>
+                    <div style={{ background: "#dcf8c6", borderRadius: "10px 10px 2px 10px", padding: "8px 12px", maxWidth: "90%", marginRight: "auto", color: "#111", fontSize: 12, lineHeight: 1.7 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 3 }}>🔔 حجز جديد!</div>
                       <div>رقم الحجز: HJ-123456</div>
                       <div>الاسم: محمد علي</div>
-                      <div>الهاتف: 07700000000</div>
                       <div>الخدمة: كشف عام</div>
-                      <div>الموعد: 2026-05-27 10:30</div>
+                      <div>الموعد: 10:30</div>
                     </div>
                   </div>
                 </div>
-                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-                  <h4 style={{ fontWeight: 700, marginBottom: 16, color: COLORS.white }}>⚡ الميزات الرئيسية</h4>
-                  {["إشعار فوري على واتساب عند كل حجز", "خدمات مخصصة لكل قطاع", "اختيار حر للوقت 24 ساعة", "رقم حجز فريد لكل عميل", "تقييم الخدمة بالنجوم", "دفع بالدينار العراقي"].map((f, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 5 ? `1px solid ${COLORS.border}` : "none" }}>
-                      <span style={{ color: COLORS.accent, fontSize: 16 }}>✓</span>
-                      <span style={{ fontSize: 14, color: COLORS.text }}>{f}</span>
+                <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20 }}>
+                  <h4 style={{ fontWeight: 700, marginBottom: 14, color: COLORS.white, fontSize: 14 }}>⚡ الميزات الرئيسية</h4>
+                  {["إشعار فوري على واتساب", "خدمات مخصصة لكل قطاع", "اختيار حر للوقت", "رقم حجز فريد", "تقييم بالنجوم", "دفع بالدينار العراقي"].map((f, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: i < 5 ? `1px solid ${COLORS.border}` : "none" }}>
+                      <span style={{ color: COLORS.accent, fontSize: 14 }}>✓</span>
+                      <span style={{ fontSize: 13, color: COLORS.text }}>{f}</span>
                     </div>
                   ))}
                 </div>
@@ -525,36 +502,28 @@ const handleBooking = async () => {
 
         {activeTab === "plans" && (
           <div>
-            <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8, textAlign: "center" }}>باقات الاشتراك</h2>
-            <p style={{ color: COLORS.muted, marginBottom: 32, textAlign: "center" }}>اشتراك شهري بالدينار العراقي — ألغِ وقت ما تريد</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, textAlign: "center" }}>باقات الاشتراك</h2>
+            <p style={{ color: COLORS.muted, marginBottom: 24, textAlign: "center", fontSize: 13 }}>اشتراك شهري بالدينار العراقي — ألغِ وقت ما تريد</p>
+            <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
               {PLANS.map((p, i) => (
-                <div key={i} className="plan-card" onClick={() => setSelectedPlan(p.name)} style={{ background: COLORS.card, border: `2px solid ${selectedPlan === p.name ? p.color : COLORS.border}`, borderRadius: 18, padding: 28, position: "relative", boxShadow: selectedPlan === p.name ? `0 0 30px ${p.color}33` : "none" }}>
-                  {p.popular && (
-                    <div style={{ position: "absolute", top: -12, right: 20, background: p.color, color: "#000", fontSize: 11, padding: "4px 14px", borderRadius: 20, fontWeight: 700 }}>الأكثر مبيعاً</div>
-                  )}
-                  {p.hasDiscount && (
-                    <div style={{ position: "absolute", top: -12, left: 20, background: "#f59e0b", color: "#000", fontSize: 11, padding: "4px 14px", borderRadius: 20, fontWeight: 700 }}>🏷️ قابل للخصم</div>
-                  )}
-                  <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.white, marginBottom: 8 }}>{p.name}</div>
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ fontSize: 36, fontWeight: 900, color: p.color }}>{p.price}</span>
-                    <span style={{ fontSize: 13, color: COLORS.muted }}> د.ع / شهر</span>
+                <div key={i} onClick={() => setSelectedPlan(p.name)} style={{ background: COLORS.card, border: `2px solid ${selectedPlan === p.name ? p.color : COLORS.border}`, borderRadius: 18, padding: 22, position: "relative", cursor: "pointer", boxShadow: selectedPlan === p.name ? `0 0 30px ${p.color}33` : "none" }}>
+                  {p.popular && <div style={{ position: "absolute", top: -12, right: 16, background: p.color, color: "#000", fontSize: 10, padding: "3px 12px", borderRadius: 20, fontWeight: 700 }}>الأكثر مبيعاً</div>}
+                  {p.hasDiscount && <div style={{ position: "absolute", top: -12, left: 16, background: "#f59e0b", color: "#000", fontSize: 10, padding: "3px 12px", borderRadius: 20, fontWeight: 700 }}>🏷️ قابل للخصم</div>}
+                  <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>{p.name}</div>
+                  <div style={{ marginBottom: 3 }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: p.color }}>{p.price}</span>
+                    <span style={{ fontSize: 12, color: COLORS.muted }}> د.ع / شهر</span>
                   </div>
-                  <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: p.hasDiscount ? 8 : 20 }}>مثالي لـ {p.ideal}</div>
-                  {p.hasDiscount && (
-                    <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 8, padding: "6px 12px", marginBottom: 16, fontSize: 12, color: "#f59e0b" }}>
-                      🎁 لديك كود خصم؟ طبّقه عند الاشتراك!
-                    </div>
-                  )}
-                  <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 16 }}>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: p.hasDiscount ? 6 : 16 }}>مثالي لـ {p.ideal}</div>
+                  {p.hasDiscount && <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 8, padding: "5px 10px", marginBottom: 14, fontSize: 11, color: "#f59e0b" }}>🎁 لديك كود خصم؟ طبّقه عند الاشتراك!</div>}
+                  <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14 }}>
                     {p.features.map((f, j) => (
-                      <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, padding: "6px 0" }}>
+                      <div key={j} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: COLORS.text, padding: "5px 0" }}>
                         <span style={{ color: p.color }}>✓</span> {f}
                       </div>
                     ))}
                   </div>
-                  <button onClick={e => { e.stopPropagation(); openPlanModal(p); }} style={{ width: "100%", marginTop: 20, padding: "12px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>اشترك الآن</button>
+                  <button onClick={e => { e.stopPropagation(); openPlanModal(p); }} style={{ width: "100%", marginTop: 16, padding: "11px", background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>اشترك الآن</button>
                 </div>
               ))}
             </div>
@@ -563,13 +532,13 @@ const handleBooking = async () => {
 
         {activeTab === "start" && (
           <div>
-            <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 8 }}>🗺️ خارطة طريقك</h2>
-            <p style={{ color: COLORS.muted, marginBottom: 32 }}>شسوي بالضبط حتى تبلش وتبيع هالنظام</p>
-            <div style={{ background: "linear-gradient(135deg, #0d1a2e, #0a1628)", border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 32, textAlign: "center" }} className="glow">
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🚀</div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, color: COLORS.white }}>جاهز تبلش؟</h3>
-              <p style={{ color: COLORS.muted, marginBottom: 20 }}>ابعتلي رسالة وأساعدك تبني النظام خطوة بخطوة</p>
-              <button onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أبدأ مشروعي", "_blank")} style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, padding: "14px 40px", fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>ابدأ مشروعك الآن ✓</button>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>🗺️ خارطة طريقك</h2>
+            <p style={{ color: COLORS.muted, marginBottom: 24, fontSize: 14 }}>شسوي بالضبط حتى تبلش وتبيع هالنظام</p>
+            <div style={{ background: "linear-gradient(135deg, #0d1a2e, #0a1628)", border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 28, textAlign: "center" }} className="glow">
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🚀</div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, color: COLORS.white }}>جاهز تبلش؟</h3>
+              <p style={{ color: COLORS.muted, marginBottom: 18, fontSize: 14 }}>ابعتلي رسالة وأساعدك تبني النظام خطوة بخطوة</p>
+              <button onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أبدأ مشروعي", "_blank")} style={{ background: "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, padding: "13px 36px", fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>ابدأ مشروعك الآن ✓</button>
             </div>
           </div>
         )}
