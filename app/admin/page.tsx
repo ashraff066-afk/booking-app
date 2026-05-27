@@ -131,7 +131,7 @@ export default function AdminPage() {
             { id: "clients", label: "العملاء" },
           ].map(t => (
             <button key={t.id} onClick={() => setActiveSection(t.id)} style={{
-              padding: "10px 24px", borderRadius: 10, border: "none", cursor: "pointer",
+              padding: "10px 24px", borderRadius: 10, cursor: "pointer",
               fontSize: 14, fontFamily: "Tajawal, sans-serif", fontWeight: 700,
               background: activeSection === t.id ? COLORS.accentDim : COLORS.surface,
               color: activeSection === t.id ? COLORS.accent : COLORS.muted,
