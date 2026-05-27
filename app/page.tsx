@@ -110,25 +110,26 @@ export default function App() {
 
   const generateBookingNumber = () => "HJ-" + Date.now().toString().slice(-6);
 
-  const handleBooking = async () => {
-    if (!name || !phone || !bookingDate) { alert("يرجى إدخال جميع البيانات"); return; }
-    setLoading(true);
-    const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
-    const bNumber = generateBookingNumber();
-    const { error } = await supabase.from("bookings").insert([
-      { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
-    ]);
+const handleBooking = async () => {
+  if (!name || !phone || !bookingDate) { alert("يرجى إدخال جميع البيانات"); return; }
+  setLoading(true);
+  const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
+  const bNumber = generateBookingNumber();
+  const { error } = await supabase.from("bookings").insert([
+    { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
+  ]);
+  setLoading(false);
+  if (!error) {
     const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالقطاع: ${currentSector.label}\nالموعد: ${timeStr}`;
     window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
-    setLoading(false);
-    if (!error) {
-      setBookingNumber(bNumber);
-      setBookingSuccess(true);
-      setName(""); setPhone(""); setBookingDate("");
-      setRating(0); setComment(""); setReviewSubmitted(false);
-    }
-  };
-
+    setBookingNumber(bNumber);
+    setBookingSuccess(true);
+    setName(""); setPhone(""); setBookingDate("");
+    setRating(0); setComment(""); setReviewSubmitted(false);
+  } else {
+    alert("حدث خطأ، حاول مجدداً");
+  }
+};
   const handleReview = async () => {
     if (rating === 0) { alert("يرجى اختيار تقييم"); return; }
     setReviewLoading(true);
