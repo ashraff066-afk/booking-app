@@ -68,7 +68,6 @@ export default function App() {
   const [activeSector, setActiveSector] = useState("clinic");
   const [selectedPlan, setSelectedPlan] = useState("احترافي");
 
-  // Booking form
   const [bookingSector, setBookingSector] = useState("clinic");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -79,6 +78,13 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingNumber, setBookingNumber] = useState("");
+
+  // Review
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   // Plan modal
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -96,32 +102,35 @@ export default function App() {
     setService(SECTORS_DATA[s as keyof typeof SECTORS_DATA].services[0]);
   };
 
-  const generateBookingNumber = () => {
-    return "HJ-" + Date.now().toString().slice(-6);
-  };
+  const generateBookingNumber = () => "HJ-" + Date.now().toString().slice(-6);
 
   const handleBooking = async () => {
-    if (!name || !phone || !bookingDate) {
-      alert("يرجى إدخال جميع البيانات");
-      return;
-    }
+    if (!name || !phone || !bookingDate) { alert("يرجى إدخال جميع البيانات"); return; }
     setLoading(true);
     const timeStr = `${bookingDate} ${bookingHour}:${bookingMinute}`;
     const bNumber = generateBookingNumber();
-
     const { error } = await supabase.from("bookings").insert([
       { name, phone, service, time: timeStr, sector: bookingSector, status: "pending" }
     ]);
-
     const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالقطاع: ${currentSector.label}\nالموعد: ${timeStr}`;
     window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
-
     setLoading(false);
     if (!error) {
       setBookingNumber(bNumber);
       setBookingSuccess(true);
       setName(""); setPhone(""); setBookingDate("");
+      setRating(0); setComment(""); setReviewSubmitted(false);
     }
+  };
+
+  const handleReview = async () => {
+    if (rating === 0) { alert("يرجى اختيار تقييم"); return; }
+    setReviewLoading(true);
+    await supabase.from("reviews").insert([
+      { booking_number: bookingNumber, rating, comment }
+    ]);
+    setReviewLoading(false);
+    setReviewSubmitted(true);
   };
 
   const openPlanModal = (plan: { name: string; price: string }) => {
@@ -150,32 +159,30 @@ export default function App() {
       <div dir="rtl" style={{
         minHeight: "100vh", background: COLORS.bg, color: COLORS.text,
         fontFamily: "'Tajawal', 'Cairo', sans-serif",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
       }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap');`}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
         <div style={{
           background: COLORS.card, border: `1px solid ${COLORS.accent}44`,
-          borderRadius: 24, padding: 48, maxWidth: 480, width: "90%", textAlign: "center",
+          borderRadius: 24, padding: 40, maxWidth: 500, width: "100%", textAlign: "center",
           boxShadow: "0 0 60px #00d4aa22",
         }}>
-          <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
-          <h2 style={{ fontSize: 28, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>تم الحجز بنجاح!</h2>
-          <p style={{ color: COLORS.muted, fontSize: 15, marginBottom: 28, lineHeight: 1.7 }}>
-            شكراً {name || "لك"}! تم تسجيل حجزك وسيتم التواصل معك قريباً على واتساب للتأكيد.
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+          <h2 style={{ fontSize: 26, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>تم الحجز بنجاح!</h2>
+          <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 24, lineHeight: 1.7 }}>
+            شكراً! تم تسجيل حجزك وسيتم التواصل معك على واتساب للتأكيد.
           </p>
 
           <div style={{
             background: COLORS.accentDim, border: `2px solid ${COLORS.accent}`,
-            borderRadius: 14, padding: "20px 24px", marginBottom: 28,
+            borderRadius: 14, padding: "16px 24px", marginBottom: 20,
           }}>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم حجزك</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.accent, letterSpacing: 2 }}>{bookingNumber}</div>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 6 }}>احتفظ بهذا الرقم للمتابعة</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>رقم حجزك</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.accent, letterSpacing: 2 }}>{bookingNumber}</div>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>احتفظ بهذا الرقم للمتابعة</div>
           </div>
 
-          <div style={{
-            background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 28, textAlign: "right",
-          }}>
+          <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 24, textAlign: "right" }}>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
               <span style={{ color: COLORS.accent, fontWeight: 600 }}>{service}</span>
               <span style={{ color: COLORS.muted, fontSize: 13 }}>الخدمة</span>
@@ -189,6 +196,61 @@ export default function App() {
               <span style={{ color: COLORS.muted, fontSize: 13 }}>الموعد</span>
             </div>
           </div>
+
+          {/* RATING */}
+          {!reviewSubmitted ? (
+            <div style={{
+              background: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 20,
+              border: `1px solid ${COLORS.border}`,
+            }}>
+              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4 }}>قيّم تجربتك ⭐</h4>
+              <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>رأيك يساعدنا نتحسن!</p>
+              <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <span
+                    key={star}
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    style={{
+                      fontSize: 36, cursor: "pointer", transition: "transform 0.1s",
+                      transform: (hoverRating || rating) >= star ? "scale(1.2)" : "scale(1)",
+                      filter: (hoverRating || rating) >= star ? "none" : "grayscale(1)",
+                    }}
+                  >⭐</span>
+                ))}
+              </div>
+              <textarea
+                placeholder="اكتب تعليقك هنا (اختياري)..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 10,
+                  background: COLORS.card, border: `1px solid ${COLORS.border}`,
+                  color: COLORS.text, fontSize: 13, outline: "none",
+                  fontFamily: "Tajawal, sans-serif", resize: "none", marginBottom: 12,
+                }}
+              />
+              <button onClick={handleReview} disabled={reviewLoading} style={{
+                width: "100%", padding: "12px",
+                background: rating > 0 ? "linear-gradient(90deg, #00d4aa, #0070f3)" : COLORS.surface,
+                border: `1px solid ${rating > 0 ? COLORS.accent : COLORS.border}`,
+                borderRadius: 10, fontSize: 14, fontWeight: 700,
+                cursor: rating > 0 ? "pointer" : "not-allowed",
+                color: rating > 0 ? "#000" : COLORS.muted,
+                fontFamily: "Tajawal, sans-serif",
+              }}>{reviewLoading ? "جاري الإرسال..." : "إرسال التقييم"}</button>
+            </div>
+          ) : (
+            <div style={{
+              background: "#00d4aa22", border: "1px solid #00d4aa",
+              borderRadius: 14, padding: 16, marginBottom: 20,
+              color: COLORS.accent, fontWeight: 700,
+            }}>
+              ✅ شكراً على تقييمك! {"⭐".repeat(rating)}
+            </div>
+          )}
 
           <button onClick={() => { setBookingSuccess(false); setActiveTab("demo"); }} style={{
             width: "100%", padding: "14px",
@@ -234,7 +296,6 @@ export default function App() {
         input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       `}</style>
 
-      {/* PLAN MODAL */}
       {showPlanModal && (
         <div className="modal-overlay" onClick={() => setShowPlanModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{
@@ -330,7 +391,6 @@ export default function App() {
         </div>
       )}
 
-      {/* NAV */}
       <nav style={{
         background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`,
         padding: "0 24px", display: "flex", alignItems: "center",
@@ -540,9 +600,7 @@ export default function App() {
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>
-                    {currentSector.icon} نوع الخدمة
-                  </label>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6, fontWeight: 500 }}>{currentSector.icon} نوع الخدمة</label>
                   <select value={service} onChange={e => setService(e.target.value)} style={{
                     width: "100%", padding: "12px 16px", borderRadius: 10,
                     background: COLORS.surface, border: `1px solid ${COLORS.border}`,
@@ -621,7 +679,7 @@ export default function App() {
                     "خدمات مخصصة لكل قطاع",
                     "اختيار حر للوقت 24 ساعة",
                     "رقم حجز فريد لكل عميل",
-                    "لوحة تحكم عربية كاملة",
+                    "تقييم الخدمة بالنجوم",
                     "دفع بالدينار العراقي",
                   ].map((f, i) => (
                     <div key={i} style={{
