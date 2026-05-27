@@ -70,7 +70,6 @@ export default function AdminPage() {
       .select("created_at, status")
       .gte("created_at", `${selectedYear}-01-01`)
       .lte("created_at", `${selectedYear}-12-31`);
-
     const months: any[] = [];
     for (let m = 0; m < 12; m++) {
       const monthData = (data || []).filter(b => new Date(b.created_at).getMonth() === m);
@@ -93,6 +92,12 @@ export default function AdminPage() {
   const toggleClientActive = async (id: string, current: boolean) => {
     await supabase.from("clients").update({ is_active: !current }).eq("id", id);
     fetchClients();
+  };
+
+  const sendReminder = (b: any) => {
+    const msg = `مرحبا ${b.name} 👋\nتذكير بموعدك 🗓️\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! ✨`;
+    const phone = b.phone?.replace(/^0/, "964");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   const handleLogin = () => {
@@ -200,13 +205,14 @@ export default function AdminPage() {
                         {b.status === "confirmed" ? "مؤكد" : b.status === "cancelled" ? "ملغي" : "انتظار"}
                       </span>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {b.status === "pending" && (
-                        <button onClick={() => updateStatus(b.id, "confirmed")} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 8, padding: "6px 12px", color: "#00d4aa", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>تأكيد</button>
+                        <button onClick={() => updateStatus(b.id, "confirmed")} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 8, padding: "6px 10px", color: "#00d4aa", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>تأكيد</button>
                       )}
                       {b.status !== "cancelled" && (
-                        <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "6px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
+                        <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "6px 10px", color: "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
                       )}
+                      <button onClick={() => sendReminder(b)} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 8, padding: "6px 10px", color: "#25d366", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>📱 تذكير</button>
                     </div>
                   </div>
                 ))
@@ -224,7 +230,6 @@ export default function AdminPage() {
                 {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 32 }}>
               {[
                 { label: "إجمالي الحجوزات", value: monthlyStats.reduce((a, s) => a + s.total, 0), color: COLORS.accent },
@@ -238,7 +243,6 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
-
             <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
               <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 24 }}>الحجوزات لكل شهر</h3>
               {monthlyStats.map((s, i) => (
