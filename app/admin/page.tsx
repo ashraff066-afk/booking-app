@@ -25,6 +25,11 @@ export default function AdminPage() {
   const [passError, setPassError] = useState(false);
   const [activeSection, setActiveSection] = useState("bookings");
 
+  // Search & Filter
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSector, setFilterSector] = useState("all");
+
   useEffect(() => {
     if (authed) { fetchBookings(); fetchClients(); }
   }, [authed]);
@@ -55,6 +60,17 @@ export default function AdminPage() {
     if (pass === ADMIN_PASSWORD) { setAuthed(true); setPassError(false); }
     else { setPassError(true); }
   };
+
+  // Filter bookings
+  const filteredBookings = bookings.filter(b => {
+    const matchSearch = search === "" ||
+      b.name?.toLowerCase().includes(search.toLowerCase()) ||
+      b.phone?.includes(search) ||
+      b.service?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === "all" || b.status === filterStatus;
+    const matchSector = filterSector === "all" || b.sector === filterSector;
+    return matchSearch && matchStatus && matchSector;
+  });
 
   if (!authed) {
     return (
@@ -104,6 +120,7 @@ export default function AdminPage() {
       minHeight: "100vh", background: COLORS.bg, color: COLORS.text,
       fontFamily: "'Tajawal', 'Cairo', sans-serif", padding: 32,
     }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
           <div>
@@ -127,8 +144,8 @@ export default function AdminPage() {
         {/* TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
           {[
-            { id: "bookings", label: "الحجوزات" },
-            { id: "clients", label: "العملاء" },
+            { id: "bookings", label: "📋 الحجوزات" },
+            { id: "clients", label: "👥 العملاء" },
           ].map(t => (
             <button key={t.id} onClick={() => setActiveSection(t.id)} style={{
               padding: "10px 24px", borderRadius: 10, cursor: "pointer",
@@ -143,37 +160,83 @@ export default function AdminPage() {
         {/* BOOKINGS SECTION */}
         {activeSection === "bookings" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 32 }}>
+            {/* STATS */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
               {[
-                { label: "إجمالي الحجوزات", value: bookings.length, icon: "📋" },
-                { label: "مؤكد", value: bookings.filter(b => b.status === "confirmed").length, icon: "✅" },
-                { label: "انتظار", value: bookings.filter(b => b.status === "pending").length, icon: "⏳" },
+                { label: "الكل", value: bookings.length, icon: "📋", color: COLORS.accent },
+                { label: "انتظار", value: bookings.filter(b => b.status === "pending").length, icon: "⏳", color: "#f59e0b" },
+                { label: "مؤكد", value: bookings.filter(b => b.status === "confirmed").length, icon: "✅", color: "#00d4aa" },
+                { label: "ملغي", value: bookings.filter(b => b.status === "cancelled").length, icon: "❌", color: "#ef4444" },
               ].map((s, i) => (
                 <div key={i} style={{
                   background: COLORS.card, border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14, padding: 20,
-                }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
-                  <div style={{ fontSize: 32, fontWeight: 800, color: COLORS.white }}>{s.value}</div>
+                  borderRadius: 14, padding: 20, cursor: "pointer",
+                }} onClick={() => setFilterStatus(i === 0 ? "all" : ["pending", "confirmed", "cancelled"][i - 1])}>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{s.icon}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
                   <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
+            {/* SEARCH & FILTER */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <input
+                type="text"
+                placeholder="🔍 ابحث بالاسم أو الهاتف أو الخدمة..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{
+                  padding: "12px 16px", borderRadius: 10,
+                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  color: COLORS.text, fontSize: 14, outline: "none",
+                  fontFamily: "Tajawal, sans-serif",
+                }}
+              />
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{
+                padding: "12px 16px", borderRadius: 10,
+                background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                color: COLORS.text, fontSize: 14, outline: "none",
+                fontFamily: "Tajawal, sans-serif",
+              }}>
+                <option value="all">كل الحالات</option>
+                <option value="pending">انتظار</option>
+                <option value="confirmed">مؤكد</option>
+                <option value="cancelled">ملغي</option>
+              </select>
+              <select value={filterSector} onChange={e => setFilterSector(e.target.value)} style={{
+                padding: "12px 16px", borderRadius: 10,
+                background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                color: COLORS.text, fontSize: 14, outline: "none",
+                fontFamily: "Tajawal, sans-serif",
+              }}>
+                <option value="all">كل القطاعات</option>
+                <option value="clinic">🏥 عيادة</option>
+                <option value="salon">✂️ صالون</option>
+                <option value="hotel">🏨 شاليه</option>
+              </select>
+            </div>
+
+            {/* RESULTS COUNT */}
+            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 12 }}>
+              عدد النتائج: {filteredBookings.length} من {bookings.length}
+            </p>
+
+            {/* TABLE */}
             <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
               <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}` }}>
                 <h3 style={{ fontWeight: 700, color: COLORS.white }}>الحجوزات</h3>
               </div>
               {loading ? (
                 <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>جاري التحميل...</div>
-              ) : bookings.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>لا توجد حجوزات بعد</div>
+              ) : filteredBookings.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>لا توجد نتائج</div>
               ) : (
-                bookings.map((b, i) => (
+                filteredBookings.map((b, i) => (
                   <div key={i} style={{
                     display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
                     padding: "16px 24px", alignItems: "center",
-                    borderBottom: i < bookings.length - 1 ? `1px solid ${COLORS.border}` : "none",
+                    borderBottom: i < filteredBookings.length - 1 ? `1px solid ${COLORS.border}` : "none",
                     background: i % 2 === 0 ? "transparent" : "#ffffff04",
                   }}>
                     <div>
@@ -218,8 +281,8 @@ export default function AdminPage() {
         {/* CLIENTS SECTION */}
         {activeSection === "clients" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}` }}>
-              <h3 style={{ fontWeight: 700, color: COLORS.white }}>العملاء المسجلين</h3>
+            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontWeight: 700, color: COLORS.white }}>العملاء المسجلين ({clients.length})</h3>
             </div>
             {clients.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>لا يوجد عملاء بعد</div>
@@ -253,7 +316,7 @@ export default function AdminPage() {
                       borderRadius: 8, padding: "6px 12px",
                       color: c.is_active ? "#ef4444" : "#00d4aa",
                       fontSize: 12, cursor: "pointer", fontFamily: "Tajawal, sans-serif",
-                    }}>{c.is_active ? "إيقاف" : "تفعيل"}</button>
+                    }}>{c.is_active ? "إيقاف" : "تفعيل ✓"}</button>
                   </div>
                 </div>
               ))
