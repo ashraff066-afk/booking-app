@@ -100,6 +100,12 @@ export default function AdminPage() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const sendConfirmation = (b: any) => {
+    const msg = `مرحبا ${b.name} 😊\nتم تأكيد موعدك ✅\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! 🌟`;
+    const phone = b.phone?.replace(/^0/, "964");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   const handleLogin = () => {
     if (pass === ADMIN_PASSWORD) { setAuthed(true); setPassError(false); }
     else { setPassError(true); }
@@ -207,7 +213,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {b.status === "pending" && (
-                        <button onClick={() => updateStatus(b.id, "confirmed")} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 8, padding: "6px 10px", color: "#00d4aa", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>تأكيد</button>
+                        <button onClick={async () => { await updateStatus(b.id, "confirmed"); sendConfirmation(b); }} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 8, padding: "6px 10px", color: "#00d4aa", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>✅ تأكيد</button>
                       )}
                       {b.status !== "cancelled" && (
                         <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "6px 10px", color: "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
@@ -267,7 +273,7 @@ export default function AdminPage() {
         {/* CLIENTS */}
         {activeSection === "clients" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}` }}>
               <h3 style={{ fontWeight: 700, color: COLORS.white }}>العملاء المسجلين ({clients.length})</h3>
             </div>
             {clients.length === 0 ? (
