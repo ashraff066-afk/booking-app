@@ -16,9 +16,12 @@ const COLORS = {
   white: "#ffffff",
 };
 
+const ARABIC_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+
 export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [authed, setAuthed] = useState(false);
   const [pass, setPass] = useState("");
@@ -27,6 +30,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSector, setFilterSector] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     if (authed) { fetchBookings(); fetchClients(); }
@@ -36,6 +40,11 @@ export default function AdminPage() {
     if (!authed) return;
     fetchBookings();
   }, [search, filterStatus, filterSector]);
+
+  useEffect(() => {
+    if (!authed) return;
+    fetchMonthlyStats();
+  }, [authed, selectedYear]);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -55,6 +64,27 @@ export default function AdminPage() {
     setClients(data || []);
   };
 
+  const fetchMonthlyStats = async () => {
+    const { data } = await supabase
+      .from("bookings")
+      .select("created_at, status")
+      .gte("created_at", `${selectedYear}-01-01`)
+      .lte("created_at", `${selectedYear}-12-31`);
+
+    const months: any[] = [];
+    for (let m = 0; m < 12; m++) {
+      const monthData = (data || []).filter(b => new Date(b.created_at).getMonth() === m);
+      months.push({
+        label: ARABIC_MONTHS[m],
+        total: monthData.length,
+        confirmed: monthData.filter(b => b.status === "confirmed").length,
+        pending: monthData.filter(b => b.status === "pending").length,
+        cancelled: monthData.filter(b => b.status === "cancelled").length,
+      });
+    }
+    setMonthlyStats(months);
+  };
+
   const updateStatus = async (id: string, status: string) => {
     await supabase.from("bookings").update({ status }).eq("id", id);
     fetchBookings();
@@ -69,6 +99,8 @@ export default function AdminPage() {
     if (pass === ADMIN_PASSWORD) { setAuthed(true); setPassError(false); }
     else { setPassError(true); }
   };
+
+  const maxTotal = Math.max(...monthlyStats.map(s => s.total), 1);
 
   if (!authed) {
     return (
@@ -99,17 +131,18 @@ export default function AdminPage() {
             <p style={{ color: COLORS.muted, marginTop: 4 }}>إدارة الحجوزات والعملاء</p>
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <button onClick={() => { fetchBookings(); fetchClients(); }} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>🔄 تحديث</button>
+            <button onClick={() => { fetchBookings(); fetchClients(); fetchMonthlyStats(); }} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>🔄 تحديث</button>
             <button onClick={() => setAuthed(false)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "10px 20px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>خروج</button>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-          {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "clients", label: "👥 العملاء" }].map(t => (
+          {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "stats", label: "📊 الإحصائيات" }, { id: "clients", label: "👥 العملاء" }].map(t => (
             <button key={t.id} onClick={() => setActiveSection(t.id)} style={{ padding: "10px 24px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontFamily: "Tajawal, sans-serif", fontWeight: 700, background: activeSection === t.id ? COLORS.accentDim : COLORS.surface, color: activeSection === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeSection === t.id ? COLORS.accent : COLORS.border}` }}>{t.label}</button>
           ))}
         </div>
 
+        {/* BOOKINGS */}
         {activeSection === "bookings" && (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
@@ -182,6 +215,52 @@ export default function AdminPage() {
           </>
         )}
 
+        {/* STATS */}
+        {activeSection === "stats" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: COLORS.white }}>📊 الإحصائيات الشهرية</h2>
+              <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} style={{ padding: "10px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
+                {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 32 }}>
+              {[
+                { label: "إجمالي الحجوزات", value: monthlyStats.reduce((a, s) => a + s.total, 0), color: COLORS.accent },
+                { label: "مؤكدة", value: monthlyStats.reduce((a, s) => a + s.confirmed, 0), color: "#00d4aa" },
+                { label: "انتظار", value: monthlyStats.reduce((a, s) => a + s.pending, 0), color: "#f59e0b" },
+                { label: "ملغاة", value: monthlyStats.reduce((a, s) => a + s.cancelled, 0), color: "#ef4444" },
+              ].map((s, i) => (
+                <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 20 }}>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
+              <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 24 }}>الحجوزات لكل شهر</h3>
+              {monthlyStats.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                  <span style={{ color: COLORS.muted, fontSize: 13, width: 60, textAlign: "right", flexShrink: 0 }}>{s.label}</span>
+                  <div style={{ flex: 1, background: COLORS.surface, borderRadius: 99, height: 28, overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #00d4aa, #0070f3)", width: `${(s.total / maxTotal) * 100}%`, transition: "width 0.5s", display: "flex", alignItems: "center", paddingRight: 10, minWidth: s.total > 0 ? 30 : 0 }}>
+                      {s.total > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#000" }}>{s.total}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: "#00d4aa" }}>✅ {s.confirmed}</span>
+                    <span style={{ fontSize: 11, color: "#f59e0b" }}>⏳ {s.pending}</span>
+                    <span style={{ fontSize: 11, color: "#ef4444" }}>❌ {s.cancelled}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* CLIENTS */}
         {activeSection === "clients" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
