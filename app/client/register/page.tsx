@@ -17,6 +17,7 @@ const COLORS = {
 export default function ClientRegister() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [phone, setPhone] = useState("");
   const [sector, setSector] = useState("clinic");
@@ -28,25 +29,41 @@ export default function ClientRegister() {
       setError("يرجى إدخال جميع البيانات");
       return;
     }
+    if (password.length < 6) {
+      setError("كلمة السر يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
     setLoading(true);
     setError("");
 
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
 
     if (signUpError) {
-      setError("حدث خطأ، حاول مرة ثانية");
+      if (signUpError.message.includes("already registered")) {
+        setError("هذا الإيميل مسجل مسبقاً — جرب تسجيل الدخول");
+      } else {
+        setError(`خطأ: ${signUpError.message}`);
+      }
       setLoading(false);
       return;
     }
 
     if (data.user) {
-      await supabase.from("clients").insert([{
+      const { error: insertError } = await supabase.from("clients").insert([{
         user_id: data.user.id,
         business_name: businessName,
         sector,
         phone,
+        is_active: false,
       }]);
+      if (insertError) {
+        setError(`خطأ في حفظ البيانات: ${insertError.message}`);
+        setLoading(false);
+        return;
+      }
       window.location.href = "/client/dashboard";
+    } else {
+      setError("تأكد من إيميلك — راجع البريد الإلكتروني للتفعيل");
     }
     setLoading(false);
   };
@@ -68,7 +85,7 @@ export default function ClientRegister() {
             background: "linear-gradient(135deg, #00d4aa, #0070f3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, fontWeight: 900, color: "#000",
-          }}>ح</div>
+          }}>م</div>
           <h2 style={{ fontWeight: 800, fontSize: 22, color: COLORS.white }}>إنشاء حساب جديد</h2>
           <p style={{ color: COLORS.muted, fontSize: 14, marginTop: 8 }}>سجل عملك وابدأ تستقبل الحجوزات</p>
         </div>
@@ -83,20 +100,12 @@ export default function ClientRegister() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم العمل</label>
-          <input type="text" placeholder="مثال: عيادة د. أحمد" value={businessName} onChange={e => setBusinessName(e.target.value)} style={{
-            width: "100%", padding: "12px 16px", borderRadius: 10,
-            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-            color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-          }} />
+          <input type="text" placeholder="مثال: عيادة د. أحمد" value={businessName} onChange={e => setBusinessName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
         </div>
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
-          <select value={sector} onChange={e => setSector(e.target.value)} style={{
-            width: "100%", padding: "12px 16px", borderRadius: 10,
-            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-            color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-          }}>
+          <select value={sector} onChange={e => setSector(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
             <option value="clinic">🏥 عيادة</option>
             <option value="salon">✂️ صالون</option>
             <option value="hotel">🏨 شاليه / فندق</option>
@@ -105,29 +114,32 @@ export default function ClientRegister() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف</label>
-          <input type="tel" placeholder="07xx xxx xxxx" value={phone} onChange={e => setPhone(e.target.value)} style={{
-            width: "100%", padding: "12px 16px", borderRadius: 10,
-            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-            color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-          }} />
+          <input type="tel" placeholder="07xx xxx xxxx" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
         </div>
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>الإيميل</label>
-          <input type="email" placeholder="example@email.com" value={email} onChange={e => setEmail(e.target.value)} style={{
-            width: "100%", padding: "12px 16px", borderRadius: 10,
-            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-            color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-          }} />
+          <input type="email" placeholder="example@email.com" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
         </div>
 
         <div style={{ marginBottom: 24 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>كلمة السر</label>
-          <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{
-            width: "100%", padding: "12px 16px", borderRadius: 10,
-            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-            color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-          }} />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={{ width: "100%", padding: "12px 48px 12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}
+            />
+            <button
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18 }}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>على الأقل 6 أحرف</p>
         </div>
 
         <button onClick={handleRegister} disabled={loading} style={{
@@ -140,9 +152,7 @@ export default function ClientRegister() {
 
         <p style={{ textAlign: "center", fontSize: 14, color: COLORS.muted }}>
           عندك حساب؟{" "}
-          <a href="/client" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>
-            سجل دخول
-          </a>
+          <a href="/client" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>سجل دخول</a>
         </p>
       </div>
     </div>
