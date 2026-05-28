@@ -45,6 +45,10 @@ export default function ClientDashboard() {
     setUser(user);
     const { data: clientData } = await supabase.from("clients").select("*").eq("user_id", user.id).single();
     setClient(clientData);
+    if (!clientData?.is_active) {
+  window.location.href = "/client/pending";
+  return;
+}
     if (clientData) {
       setSettingsName(clientData.business_name || "");
       setSettingsPhone(clientData.phone || "");
