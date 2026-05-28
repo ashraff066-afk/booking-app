@@ -178,8 +178,9 @@ const services = customServices.length > 0 ? customServices : (SECTOR_SERVICES[c
       <div style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "16px 24px", display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg,#00d4aa,#0070f3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sectorIcon}</div>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 800, color: COLORS.white }}>{client.business_name}</h1>
-          {schedule && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>ساعات العمل: {schedule.start_time} — {schedule.end_time}</p>}
+<h1 style={{ fontSize: 18, fontWeight: 800, color: COLORS.white }}>{client.business_name}</h1>
+{client.address && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>📍 {client.address}</p>}
+{schedule && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>🕐 {schedule.start_time} — {schedule.end_time}</p>}
         </div>
       </div>
 
