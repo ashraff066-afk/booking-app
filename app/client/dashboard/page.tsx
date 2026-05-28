@@ -3,24 +3,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
 
 const COLORS = {
-  bg: "#0a0e1a",
-  surface: "#111827",
-  card: "#1a2235",
-  border: "#1e2d45",
-  accent: "#00d4aa",
-  accentDim: "#00d4aa22",
-  text: "#e2e8f0",
-  muted: "#64748b",
-  white: "#ffffff",
+  bg: "#0a0e1a", surface: "#111827", card: "#1a2235",
+  border: "#1e2d45", accent: "#00d4aa", accentDim: "#00d4aa22",
+  text: "#e2e8f0", muted: "#64748b", white: "#ffffff",
 };
 
 const DAYS = [
-  { id: "saturday", label: "السبت" },
-  { id: "sunday", label: "الأحد" },
-  { id: "monday", label: "الاثنين" },
-  { id: "tuesday", label: "الثلاثاء" },
-  { id: "wednesday", label: "الأربعاء" },
-  { id: "thursday", label: "الخميس" },
+  { id: "saturday", label: "السبت" }, { id: "sunday", label: "الأحد" },
+  { id: "monday", label: "الاثنين" }, { id: "tuesday", label: "الثلاثاء" },
+  { id: "wednesday", label: "الأربعاء" }, { id: "thursday", label: "الخميس" },
   { id: "friday", label: "الجمعة" },
 ];
 
@@ -30,8 +21,8 @@ export default function ClientDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("bookings");
+  const [copied, setCopied] = useState(false);
 
-  // جدول الدوام
   const [workDays, setWorkDays] = useState<string[]>(["saturday","sunday","monday","tuesday","wednesday"]);
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -40,7 +31,6 @@ export default function ClientDashboard() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
 
-  // الإعدادات
   const [settingsName, setSettingsName] = useState("");
   const [settingsPhone, setSettingsPhone] = useState("");
   const [settingsSector, setSettingsSector] = useState("clinic");
@@ -53,18 +43,14 @@ export default function ClientDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href = "/client"; return; }
     setUser(user);
-
     const { data: clientData } = await supabase.from("clients").select("*").eq("user_id", user.id).single();
     setClient(clientData);
-
     if (clientData) {
       setSettingsName(clientData.business_name || "");
       setSettingsPhone(clientData.phone || "");
       setSettingsSector(clientData.sector || "clinic");
-
-     const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
+      const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
       setBookings(bookingsData || []);
-
       const { data: scheduleData } = await supabase.from("schedules").select("*").eq("client_id", clientData.id).single();
       if (scheduleData) {
         setScheduleId(scheduleData.id);
@@ -77,31 +63,19 @@ export default function ClientDashboard() {
     setLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/client";
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = "/client"; };
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from("bookings").update({ status }).eq("id", id);
     checkUser();
   };
 
-  const toggleDay = (day: string) => {
-    setWorkDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-  };
+  const toggleDay = (day: string) => setWorkDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
 
   const saveSchedule = async () => {
     if (!client) return;
     setSavingSchedule(true);
-    const scheduleData = {
-      client_id: client.id,
-      sector: client.sector,
-      work_days: workDays,
-      start_time: startTime,
-      end_time: endTime,
-      max_bookings_per_day: maxPerDay,
-    };
+    const scheduleData = { client_id: client.id, sector: client.sector, work_days: workDays, start_time: startTime, end_time: endTime, max_bookings_per_day: maxPerDay };
     if (scheduleId) {
       await supabase.from("schedules").update(scheduleData).eq("id", scheduleId);
     } else {
@@ -116,11 +90,7 @@ export default function ClientDashboard() {
   const saveSettings = async () => {
     if (!client) return;
     setSavingSettings(true);
-    await supabase.from("clients").update({
-      business_name: settingsName,
-      phone: settingsPhone,
-      sector: settingsSector,
-    }).eq("id", client.id);
+    await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector }).eq("id", client.id);
     setSavingSettings(false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 3000);
@@ -137,22 +107,45 @@ export default function ClientDashboard() {
     window.open(`https://wa.me/${b.phone?.replace(/^0/, "964")}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const copyLink = () => {
+    if (!client?.slug) return;
+    navigator.clipboard.writeText(`${window.location.origin}/book/${client.slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareWhatsapp = () => {
+    if (!client?.slug) return;
+    const link = `${window.location.origin}/book/${client.slug}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(`احجز موعدك معنا على الرابط: ${link}`)}`, "_blank");
+  };
+
   if (loading) return (
     <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontSize: 18, fontFamily: "Tajawal, sans-serif" }}>جاري التحميل...</div>
   );
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal', 'Cairo', sans-serif", padding: 24 }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
+    <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal','Cairo',sans-serif", padding: 24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap'); *{box-sizing:border-box;margin:0;padding:0}`}</style>
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
 
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: COLORS.white }}>{client?.business_name || "لوحة التحكم"}</h1>
             <p style={{ color: COLORS.muted, fontSize: 12, marginTop: 3 }}>{user?.email}</p>
+            {client?.slug && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "8px 14px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: COLORS.muted }}>🔗 رابط حجزك:</span>
+                <span style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600 }}>/book/{client.slug}</span>
+                <button onClick={copyLink} style={{ background: copied ? "#00d4aa22" : COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 6, padding: "3px 10px", color: copied ? "#00d4aa" : COLORS.accent, fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>
+                  {copied ? "✅ تم النسخ" : "📋 نسخ"}
+                </button>
+                <button onClick={shareWhatsapp} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 6, padding: "3px 10px", color: "#25d366", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>📱 واتساب</button>
+              </div>
+            )}
           </div>
-          <button onClick={handleLogout} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "9px 18px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13 }}>خروج</button>
+          <button onClick={handleLogout} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "9px 18px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 13, marginRight: 0 }}>خروج</button>
         </div>
 
         {/* STATS */}
@@ -173,7 +166,7 @@ export default function ClientDashboard() {
         {/* TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "schedule", label: "📅 جدول الدوام" }, { id: "settings", label: "⚙️ الإعدادات" }].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "Tajawal, sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}` }}>{t.label}</button>
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "Tajawal,sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}` }}>{t.label}</button>
           ))}
         </div>
 
@@ -182,7 +175,7 @@ export default function ClientDashboard() {
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ fontWeight: 700, color: COLORS.white }}>حجوزاتك</h3>
-              <button onClick={checkUser} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: "6px 14px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>🔄 تحديث</button>
+              <button onClick={checkUser} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: "6px 14px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>🔄 تحديث</button>
             </div>
             {bookings.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
@@ -205,12 +198,12 @@ export default function ClientDashboard() {
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {b.status === "pending" && (
-                      <button onClick={async () => { await updateStatus(b.id, "confirmed"); sendConfirmation(b); }} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 7, padding: "4px 8px", color: "#00d4aa", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>✅ تأكيد</button>
+                      <button onClick={async () => { await updateStatus(b.id, "confirmed"); sendConfirmation(b); }} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 7, padding: "4px 8px", color: "#00d4aa", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>✅ تأكيد</button>
                     )}
                     {b.status !== "cancelled" && (
-                      <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 7, padding: "4px 8px", color: "#ef4444", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>إلغاء</button>
+                      <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 7, padding: "4px 8px", color: "#ef4444", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>إلغاء</button>
                     )}
-                    <button onClick={() => sendReminder(b)} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 7, padding: "4px 8px", color: "#25d366", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal, sans-serif" }}>📱</button>
+                    <button onClick={() => sendReminder(b)} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 7, padding: "4px 8px", color: "#25d366", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>📱</button>
                   </div>
                 </div>
               ))
@@ -223,34 +216,30 @@ export default function ClientDashboard() {
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>📅 جدول الدوام</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>حدد أيام وساعات عملك</p>
-
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 12, fontWeight: 600 }}>أيام الدوام</label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {DAYS.map(day => (
-                  <button key={day.id} onClick={() => toggleDay(day.id)} style={{ padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13, fontWeight: 600, background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface, color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted, border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}` }}>
+                  <button key={day.id} onClick={() => toggleDay(day.id)} style={{ padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 13, fontWeight: 600, background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface, color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted, border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}` }}>
                     {workDays.includes(day.id) ? "✓ " : ""}{day.label}
                   </button>
                 ))}
               </div>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت البداية</label>
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت الانتهاء</label>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               </div>
             </div>
-
             <div style={{ marginBottom: 28 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>👥 أقصى حجوزات باليوم: <span style={{ color: COLORS.accent, fontSize: 16 }}>{maxPerDay}</span></label>
               <input type="range" min={1} max={100} value={maxPerDay} onChange={e => setMaxPerDay(Number(e.target.value))} style={{ width: "100%", accentColor: COLORS.accent }} />
             </div>
-
             <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 10, fontSize: 14 }}>ملخص جدولك</h4>
               <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 2 }}>
@@ -259,8 +248,7 @@ export default function ClientDashboard() {
                 <div>👥 أقصى حجوزات: <span style={{ color: COLORS.accent, fontWeight: 700 }}>{maxPerDay} حجز / يوم</span></div>
               </div>
             </div>
-
-            <button onClick={saveSchedule} disabled={savingSchedule || workDays.length === 0} style={{ width: "100%", padding: "14px", background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSchedule || workDays.length === 0 ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>
+            <button onClick={saveSchedule} disabled={savingSchedule || workDays.length === 0} style={{ width: "100%", padding: "14px", background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSchedule || workDays.length === 0 ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
               {savingSchedule ? "جاري الحفظ..." : scheduleSaved ? "✅ تم الحفظ!" : "💾 حفظ الجدول"}
             </button>
           </div>
@@ -271,28 +259,24 @@ export default function ClientDashboard() {
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>⚙️ إعدادات الحساب</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>عدّل معلومات مشروعك</p>
-
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم العمل</label>
-              <input type="text" value={settingsName} onChange={e => setSettingsName(e.target.value)} placeholder="مثال: عيادة د. أحمد" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+              <input type="text" value={settingsName} onChange={e => setSettingsName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
             </div>
-
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الواتساب</label>
-              <input type="tel" value={settingsPhone} onChange={e => setSettingsPhone(e.target.value)} placeholder="07xx xxx xxxx" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+              <input type="tel" value={settingsPhone} onChange={e => setSettingsPhone(e.target.value)} placeholder="07xx xxx xxxx" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>هذا الرقم سيصله إشعار الواتساب عند كل حجز</p>
             </div>
-
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
-              <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
+              <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
                 <option value="clinic">🏥 عيادة</option>
                 <option value="salon">✂️ صالون</option>
                 <option value="hotel">🏨 شاليه / فندق</option>
               </select>
             </div>
-
-            <button onClick={saveSettings} disabled={savingSettings} style={{ width: "100%", padding: "14px", background: settingsSaved ? "#00d4aa" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSettings ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>
+            <button onClick={saveSettings} disabled={savingSettings} style={{ width: "100%", padding: "14px", background: settingsSaved ? "#00d4aa" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSettings ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
               {savingSettings ? "جاري الحفظ..." : settingsSaved ? "✅ تم الحفظ!" : "💾 حفظ الإعدادات"}
             </button>
           </div>
