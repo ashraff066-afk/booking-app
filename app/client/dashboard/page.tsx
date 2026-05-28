@@ -42,10 +42,10 @@ export default function ClientDashboard() {
   const [settingsName, setSettingsName] = useState("");
   const [settingsPhone, setSettingsPhone] = useState("");
   const [settingsSector, setSettingsSector] = useState("clinic");
+  const [settingsAddress, setSettingsAddress] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
-  // الخدمات
   const [newService, setNewService] = useState("");
   const [newDuration, setNewDuration] = useState(30);
   const [addingService, setAddingService] = useState(false);
@@ -62,6 +62,7 @@ export default function ClientDashboard() {
     setSettingsName(clientData.business_name || "");
     setSettingsPhone(clientData.phone || "");
     setSettingsSector(clientData.sector || "clinic");
+    setSettingsAddress(clientData.address || "");
 
     const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
     setBookings(bookingsData || []);
@@ -80,7 +81,6 @@ export default function ClientDashboard() {
 
     const { data: servicesData } = await supabase.from("services").select("*").eq("client_id", clientData.id).order("created_at", { ascending: true });
     setServices(servicesData || []);
-
     setLoading(false);
   };
 
@@ -111,7 +111,12 @@ export default function ClientDashboard() {
   const saveSettings = async () => {
     if (!client) return;
     setSavingSettings(true);
-    await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector }).eq("id", client.id);
+    await supabase.from("clients").update({
+      business_name: settingsName,
+      phone: settingsPhone,
+      sector: settingsSector,
+      address: settingsAddress,
+    }).eq("id", client.id);
     setSavingSettings(false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 3000);
@@ -165,7 +170,6 @@ export default function ClientDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(`احجز موعدك معنا: ${link}`)}`, "_blank");
   };
 
-  // إحصائيات
   const now = new Date();
   const thisMonth = bookings.filter(b => { const d = new Date(b.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
   const lastMonth = bookings.filter(b => { const d = new Date(b.created_at); const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1); return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear(); });
@@ -187,6 +191,7 @@ export default function ClientDashboard() {
           <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: COLORS.white }}>{client?.business_name || "لوحة التحكم"}</h1>
             <p style={{ color: COLORS.muted, fontSize: 12, marginTop: 3 }}>{user?.email}</p>
+            {client?.address && <p style={{ color: COLORS.muted, fontSize: 12, marginTop: 2 }}>📍 {client.address}</p>}
             {client?.slug && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "8px 14px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: 12, color: COLORS.muted }}>🔗 رابط حجزك:</span>
@@ -289,17 +294,8 @@ export default function ClientDashboard() {
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>🛎️ خدماتك</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20 }}>حدد الخدمات المتوفرة عندك — ستظهر للزبائن عند الحجز</p>
-
-            {/* إضافة خدمة */}
             <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-              <input
-                type="text"
-                placeholder="اسم الخدمة مثلاً: كشف عام"
-                value={newService}
-                onChange={e => setNewService(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addService()}
-                style={{ flex: 1, minWidth: 200, padding: "11px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}
-              />
+              <input type="text" placeholder="اسم الخدمة مثلاً: كشف عام" value={newService} onChange={e => setNewService(e.target.value)} onKeyDown={e => e.key === "Enter" && addService()} style={{ flex: 1, minWidth: 200, padding: "11px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               <select value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} style={{ padding: "11px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
                 <option value={10}>10 دقائق</option>
                 <option value={15}>15 دقيقة</option>
@@ -310,19 +306,13 @@ export default function ClientDashboard() {
                 <option value={90}>ساعة ونص</option>
                 <option value={120}>ساعتين</option>
               </select>
-              <button onClick={addService} disabled={addingService || !newService.trim()} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "11px 20px", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>
-                + إضافة
-              </button>
+              <button onClick={addService} disabled={addingService || !newService.trim()} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "11px 20px", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>+ إضافة</button>
             </div>
-
-            {/* الخدمات الموجودة */}
             {services.length === 0 ? (
               <div style={{ textAlign: "center", padding: 32, color: COLORS.muted }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
                 <div style={{ marginBottom: 16 }}>ما أضفت خدمات بعد</div>
-                <button onClick={addDefaultServices} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
-                  ✨ أضف الخدمات الافتراضية
-                </button>
+                <button onClick={addDefaultServices} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>✨ أضف الخدمات الافتراضية</button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -338,15 +328,13 @@ export default function ClientDashboard() {
                     <button onClick={() => deleteService(s.id)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "5px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حذف</button>
                   </div>
                 ))}
-                <button onClick={addDefaultServices} style={{ background: COLORS.surface, border: `1px dashed ${COLORS.border}`, borderRadius: 10, padding: "10px", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginTop: 8 }}>
-                  + إضافة الخدمات الافتراضية
-                </button>
+                <button onClick={addDefaultServices} style={{ background: COLORS.surface, border: `1px dashed ${COLORS.border}`, borderRadius: 10, padding: "10px", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginTop: 8 }}>+ إضافة الخدمات الافتراضية</button>
               </div>
             )}
           </div>
         )}
 
-        {/* STATS TAB */}
+        {/* STATS */}
         {activeTab === "stats" && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 24 }}>
@@ -444,6 +432,10 @@ export default function ClientDashboard() {
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الواتساب</label>
               <input type="tel" value={settingsPhone} onChange={e => setSettingsPhone(e.target.value)} placeholder="07xx xxx xxxx" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>هذا الرقم سيصله إشعار الواتساب عند كل حجز</p>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>📍 العنوان</label>
+              <input type="text" value={settingsAddress} onChange={e => setSettingsAddress(e.target.value)} placeholder="مثال: شارع فلسطين، بغداد" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
             </div>
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
