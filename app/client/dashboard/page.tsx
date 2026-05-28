@@ -31,7 +31,7 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("bookings");
 
-  // إعدادات الجدول
+  // جدول الدوام
   const [workDays, setWorkDays] = useState<string[]>(["saturday","sunday","monday","tuesday","wednesday"]);
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -40,9 +40,14 @@ export default function ClientDashboard() {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  // الإعدادات
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsPhone, setSettingsPhone] = useState("");
+  const [settingsSector, setSettingsSector] = useState("clinic");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  useEffect(() => { checkUser(); }, []);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -53,17 +58,14 @@ export default function ClientDashboard() {
     setClient(clientData);
 
     if (clientData) {
-      const { data: bookingsData } = await supabase
-        .from("bookings").select("*")
-        .eq("sector", clientData.sector)
-        .order("created_at", { ascending: false });
+      setSettingsName(clientData.business_name || "");
+      setSettingsPhone(clientData.phone || "");
+      setSettingsSector(clientData.sector || "clinic");
+
+      const { data: bookingsData } = await supabase.from("bookings").select("*").eq("sector", clientData.sector).order("created_at", { ascending: false });
       setBookings(bookingsData || []);
 
-      // جلب الجدول الموجود
-      const { data: scheduleData } = await supabase
-        .from("schedules").select("*")
-        .eq("client_id", clientData.id)
-        .single();
+      const { data: scheduleData } = await supabase.from("schedules").select("*").eq("client_id", clientData.id).single();
       if (scheduleData) {
         setScheduleId(scheduleData.id);
         setWorkDays(scheduleData.work_days || []);
@@ -86,9 +88,7 @@ export default function ClientDashboard() {
   };
 
   const toggleDay = (day: string) => {
-    setWorkDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
+    setWorkDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
   };
 
   const saveSchedule = async () => {
@@ -102,7 +102,6 @@ export default function ClientDashboard() {
       end_time: endTime,
       max_bookings_per_day: maxPerDay,
     };
-
     if (scheduleId) {
       await supabase.from("schedules").update(scheduleData).eq("id", scheduleId);
     } else {
@@ -114,30 +113,37 @@ export default function ClientDashboard() {
     setTimeout(() => setScheduleSaved(false), 3000);
   };
 
+  const saveSettings = async () => {
+    if (!client) return;
+    setSavingSettings(true);
+    await supabase.from("clients").update({
+      business_name: settingsName,
+      phone: settingsPhone,
+      sector: settingsSector,
+    }).eq("id", client.id);
+    setSavingSettings(false);
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 3000);
+    checkUser();
+  };
+
   const sendReminder = (b: any) => {
     const msg = `مرحبا ${b.name} 👋\nتذكير بموعدك 🗓️\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! ✨`;
-    const phone = b.phone?.replace(/^0/, "964");
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    window.open(`https://wa.me/${b.phone?.replace(/^0/, "964")}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   const sendConfirmation = (b: any) => {
     const msg = `مرحبا ${b.name} 😊\nتم تأكيد موعدك ✅\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! 🌟`;
-    const phone = b.phone?.replace(/^0/, "964");
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    window.open(`https://wa.me/${b.phone?.replace(/^0/, "964")}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  if (loading) {
-    return (
-      <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontSize: 18, fontFamily: "Tajawal, sans-serif" }}>
-        جاري التحميل...
-      </div>
-    );
-  }
+  if (loading) return (
+    <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontSize: 18, fontFamily: "Tajawal, sans-serif" }}>جاري التحميل...</div>
+  );
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal', 'Cairo', sans-serif", padding: 24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
-
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
 
         {/* HEADER */}
@@ -166,12 +172,12 @@ export default function ClientDashboard() {
 
         {/* TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "schedule", label: "📅 جدول الدوام" }].map(t => (
+          {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "schedule", label: "📅 جدول الدوام" }, { id: "settings", label: "⚙️ الإعدادات" }].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "Tajawal, sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}` }}>{t.label}</button>
           ))}
         </div>
 
-        {/* BOOKINGS TAB */}
+        {/* BOOKINGS */}
         {activeTab === "bookings" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -212,78 +218,39 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* SCHEDULE TAB */}
+        {/* SCHEDULE */}
         {activeTab === "schedule" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>📅 جدول الدوام</h3>
-            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>حدد أيام وساعات عملك حتى يشوف الزبائن الأوقات المتاحة</p>
+            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>حدد أيام وساعات عملك</p>
 
-            {/* أيام الدوام */}
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 12, fontWeight: 600 }}>أيام الدوام</label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {DAYS.map(day => (
-                  <button
-                    key={day.id}
-                    onClick={() => toggleDay(day.id)}
-                    style={{
-                      padding: "8px 16px", borderRadius: 10, cursor: "pointer",
-                      fontFamily: "Tajawal, sans-serif", fontSize: 13, fontWeight: 600,
-                      background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface,
-                      color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted,
-                      border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}`,
-                      transition: "all 0.2s",
-                    }}
-                  >
+                  <button key={day.id} onClick={() => toggleDay(day.id)} style={{ padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "Tajawal, sans-serif", fontSize: 13, fontWeight: 600, background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface, color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted, border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}` }}>
                     {workDays.includes(day.id) ? "✓ " : ""}{day.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* ساعات الدوام */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت البداية</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
-                  style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}
-                />
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت الانتهاء</label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
-                  style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}
-                />
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
               </div>
             </div>
 
-            {/* أقصى عدد حجوزات */}
             <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>
-                👥 أقصى عدد حجوزات باليوم: <span style={{ color: COLORS.accent, fontSize: 16 }}>{maxPerDay}</span>
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={100}
-                value={maxPerDay}
-                onChange={e => setMaxPerDay(Number(e.target.value))}
-                style={{ width: "100%", accentColor: COLORS.accent }}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginTop: 4 }}>
-                <span>1</span>
-                <span>50</span>
-                <span>100</span>
-              </div>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>👥 أقصى حجوزات باليوم: <span style={{ color: COLORS.accent, fontSize: 16 }}>{maxPerDay}</span></label>
+              <input type="range" min={1} max={100} value={maxPerDay} onChange={e => setMaxPerDay(Number(e.target.value))} style={{ width: "100%", accentColor: COLORS.accent }} />
             </div>
 
-            {/* ملخص */}
             <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 10, fontSize: 14 }}>ملخص جدولك</h4>
               <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 2 }}>
@@ -293,24 +260,41 @@ export default function ClientDashboard() {
               </div>
             </div>
 
-            <button
-              onClick={saveSchedule}
-              disabled={savingSchedule || workDays.length === 0}
-              style={{
-                width: "100%", padding: "14px",
-                background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg, #00d4aa, #0070f3)",
-                border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700,
-                cursor: savingSchedule || workDays.length === 0 ? "not-allowed" : "pointer",
-                color: "#000", fontFamily: "Tajawal, sans-serif",
-                transition: "all 0.3s",
-              }}
-            >
+            <button onClick={saveSchedule} disabled={savingSchedule || workDays.length === 0} style={{ width: "100%", padding: "14px", background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSchedule || workDays.length === 0 ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>
               {savingSchedule ? "جاري الحفظ..." : scheduleSaved ? "✅ تم الحفظ!" : "💾 حفظ الجدول"}
             </button>
+          </div>
+        )}
 
-            {workDays.length === 0 && (
-              <p style={{ color: "#ef4444", fontSize: 12, marginTop: 8, textAlign: "center" }}>اختر يوم دوام واحد على الأقل</p>
-            )}
+        {/* SETTINGS */}
+        {activeTab === "settings" && (
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
+            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>⚙️ إعدادات الحساب</h3>
+            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>عدّل معلومات مشروعك</p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم العمل</label>
+              <input type="text" value={settingsName} onChange={e => setSettingsName(e.target.value)} placeholder="مثال: عيادة د. أحمد" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الواتساب</label>
+              <input type="tel" value={settingsPhone} onChange={e => setSettingsPhone(e.target.value)} placeholder="07xx xxx xxxx" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
+              <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>هذا الرقم سيصله إشعار الواتساب عند كل حجز</p>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
+              <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}>
+                <option value="clinic">🏥 عيادة</option>
+                <option value="salon">✂️ صالون</option>
+                <option value="hotel">🏨 شاليه / فندق</option>
+              </select>
+            </div>
+
+            <button onClick={saveSettings} disabled={savingSettings} style={{ width: "100%", padding: "14px", background: settingsSaved ? "#00d4aa" : "linear-gradient(90deg, #00d4aa, #0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSettings ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal, sans-serif" }}>
+              {savingSettings ? "جاري الحفظ..." : settingsSaved ? "✅ تم الحفظ!" : "💾 حفظ الإعدادات"}
+            </button>
           </div>
         )}
 
