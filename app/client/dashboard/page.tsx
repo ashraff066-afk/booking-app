@@ -62,7 +62,7 @@ export default function ClientDashboard() {
       setSettingsPhone(clientData.phone || "");
       setSettingsSector(clientData.sector || "clinic");
 
-      const { data: bookingsData } = await supabase.from("bookings").select("*").eq("sector", clientData.sector).order("created_at", { ascending: false });
+     const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
       setBookings(bookingsData || []);
 
       const { data: scheduleData } = await supabase.from("schedules").select("*").eq("client_id", clientData.id).single();

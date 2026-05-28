@@ -87,14 +87,15 @@ const loadClient = async () => {
     if (!name || !phone || !bookingDate || !selectedTime) { alert("يرجى إدخال جميع البيانات"); return; }
     setLoading(true);
     const bNumber = "HJ-" + Date.now().toString().slice(-6);
-    const { error } = await supabase.from("bookings").insert([{
-      name, phone, service,
-      time: `${bookingDate} ${selectedTime}`,
-      booking_date: bookingDate,
-      booking_time: selectedTime,
-      sector: client.sector,
-      status: "pending",
-    }]);
+const { error } = await supabase.from("bookings").insert([{
+  name, phone, service,
+  time: `${bookingDate} ${selectedTime}`,
+  booking_date: bookingDate,
+  booking_time: selectedTime,
+  sector: client.sector,
+  client_id: client.id,
+  status: "pending",
+}]);
     setLoading(false);
     if (!error) {
       const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالموعد: ${bookingDate} ${selectedTime}`;
