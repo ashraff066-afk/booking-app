@@ -84,13 +84,13 @@ const loadClient = async () => {
   const { data: servicesData } = await supabase
   .from("services")
   .select("*")
-.eq("client_id", clientData.id)
+.eq("client_id", data[0].id)
   .order("created_at", { ascending: true });
 
 if (servicesData && servicesData.length > 0) {
   setCustomServices(servicesData.map((s: any) => s.name));
 } else {
-setCustomServices(SECTOR_SERVICES[clientData.sector] || []);
+setCustomServices(SECTOR_SERVICES[data[0].sector] || []);
 }
   setPageLoading(false);
 };
