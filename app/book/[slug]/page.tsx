@@ -137,7 +137,7 @@ const { error } = await supabase.from("bookings").insert([{
     </div>
   );
 
-  const services = SECTOR_SERVICES[client.sector] || [];
+const services = customServices.length > 0 ? customServices : (SECTOR_SERVICES[client.sector] || []);
   const slots = bookingDate && schedule ? generateSlots(schedule.start_time || "08:00", schedule.end_time || "17:00", SLOT_DURATION[client.sector] || 30) : [];
   const sectorIcon = client.sector === "clinic" ? "🏥" : client.sector === "salon" ? "✂️" : "🏨";
 
