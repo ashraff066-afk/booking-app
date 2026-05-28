@@ -90,7 +90,7 @@ const loadClient = async () => {
 if (servicesData && servicesData.length > 0) {
   setCustomServices(servicesData.map((s: any) => s.name));
 } else {
-  setCustomServices(SECTOR_SERVICES[data.sector] || []);
+setCustomServices(SECTOR_SERVICES[clientData.sector] || []);
 }
   setPageLoading(false);
 };
