@@ -53,12 +53,7 @@ const SECTORS_LIST = [
   { icon: "🏨", label: "فنادق وشاليهات", desc: "غرف وباقات — حجز سهل وإشعار فوري", color: "#f59e0b" },
 ];
 
-const TESTIMONIALS = [
-  { name: "أبو علي", role: "صاحب عيادة — بغداد", text: "قبل موعدي كنت أضيع وقتي بالهاتف. هسه كل شي منظم والزبائن راضين.", stars: 5 },
-  { name: "أم سارة", role: "صاحبة صالون — البصرة", text: "سهّل علي الشغل كثير. الإشعارات على الواتساب ممتازة ومو ينفوت علي موعد.", stars: 5 },
-  { name: "أبو كرار", role: "مدير شاليه — كربلاء", text: "النظام احترافي ويستاهل. الإحصائيات الشهرية تساعدني أعرف أحسن أوقات الحجز.", stars: 5 },
-];
-
+const TESTIMONIALS: any[] = [];
 // توليد أوقات الدوام
 function generateSlots(startTime: string, endTime: string, slotDuration: number) {
   const slots: string[] = [];
