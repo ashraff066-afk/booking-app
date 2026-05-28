@@ -56,25 +56,32 @@ export default function BookPage() {
 
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
-  const loadClient = async () => {
-   const { data, error } = await supabase.from("clients").select("*").eq("slug", slug).maybeSingle();
-    if (!data) { setNotFound(true); setPageLoading(false); return; }
-    setClient(data);
-    setService(SECTOR_SERVICES[data.sector]?.[0] || "");
-    const { data: sch } = await supabase.from("schedules").select("*").eq("client_id", data.id).single();
-    setSchedule(sch);
-    setPageLoading(false);
-  };
-
-  useEffect(() => {
-    if (!bookingDate || !client) return;
-    supabase.from("bookings").select("booking_time")
-      .eq("booking_date", bookingDate).eq("sector", client.sector).neq("status", "cancelled")
-.then(({ data }: { data: any[] | null }) => {
-        setBookedSlots((data || []).map((b: any) => b.booking_time?.slice(0, 5)));
-        setSelectedTime("");
-      });
-  }, [bookingDate, client]);
+const loadClient = async () => {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("slug", slug)
+    .limit(1);
+  
+  if (error || !data || data.length === 0) { 
+    setNotFound(true); 
+    setPageLoading(false); 
+    return; 
+  }
+  
+  const clientData = data[0];
+  setClient(clientData);
+  setService(SECTOR_SERVICES[clientData.sector]?.[0] || "");
+  
+  const { data: schData } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("client_id", clientData.id)
+    .limit(1);
+  
+  setSchedule(schData?.[0] || null);
+  setPageLoading(false);
+};
 
   const handleBooking = async () => {
     if (!name || !phone || !bookingDate || !selectedTime) { alert("يرجى إدخال جميع البيانات"); return; }
