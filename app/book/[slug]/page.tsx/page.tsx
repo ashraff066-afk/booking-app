@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../supabase";
+import { supabase } from "../../../supabase";
 
 const COLORS = {
   bg: "#0a0e1a", surface: "#111827", card: "#1a2235",
