@@ -53,6 +53,7 @@ export default function BookPage() {
   const [comment, setComment] = useState("");
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [customServices, setCustomServices] = useState<string[]>([]);
 
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
@@ -80,6 +81,17 @@ const loadClient = async () => {
     .limit(1);
   
   setSchedule(schData?.[0] || null);
+  const { data: servicesData } = await supabase
+  .from("services")
+  .select("*")
+  .eq("client_id", data.id)
+  .order("created_at", { ascending: true });
+
+if (servicesData && servicesData.length > 0) {
+  setCustomServices(servicesData.map((s: any) => s.name));
+} else {
+  setCustomServices(SECTOR_SERVICES[data.sector] || []);
+}
   setPageLoading(false);
 };
 
