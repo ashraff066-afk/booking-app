@@ -57,7 +57,7 @@ export default function BookPage() {
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
   const loadClient = async () => {
-    const { data } = await supabase.from("clients").select("*").eq("slug", slug).single();
+   const { data, error } = await supabase.from("clients").select("*").eq("slug", slug).maybeSingle();
     if (!data) { setNotFound(true); setPageLoading(false); return; }
     setClient(data);
     setService(SECTOR_SERVICES[data.sector]?.[0] || "");
