@@ -126,10 +126,11 @@ export default function ClientRegister() {
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>كلمة السر</label>
           <div style={{ position: "relative" }}>
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+  type={showPassword ? "text" : "password"}
+  placeholder="••••••••"
+  value={password}
+  onChange={e => setPassword(e.target.value)}
+  autoComplete="new-password"
               style={{ width: "100%", padding: "12px 48px 12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}
             />
             <button
