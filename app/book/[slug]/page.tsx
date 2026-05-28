@@ -84,7 +84,7 @@ const loadClient = async () => {
   const { data: servicesData } = await supabase
   .from("services")
   .select("*")
-  .eq("client_id", data.id)
+.eq("client_id", clientData.id)
   .order("created_at", { ascending: true });
 
 if (servicesData && servicesData.length > 0) {
