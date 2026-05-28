@@ -17,6 +17,7 @@ const COLORS = {
 export default function ClientLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -50,7 +51,7 @@ export default function ClientLogin() {
             background: "linear-gradient(135deg, #00d4aa, #0070f3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 24, fontWeight: 900, color: "#000",
-          }}>ح</div>
+          }}>م</div>
           <h2 style={{ fontWeight: 800, fontSize: 22, color: COLORS.white }}>دخول العملاء</h2>
           <p style={{ color: COLORS.muted, fontSize: 14, marginTop: 8 }}>ادخل على لوحة تحكمك الخاصة</p>
         </div>
@@ -67,22 +68,27 @@ export default function ClientLogin() {
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>الإيميل</label>
           <input type="email" placeholder="example@email.com" value={email} onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleLogin()}
-            style={{
-              width: "100%", padding: "12px 16px", borderRadius: 10,
-              background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-              color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-            }} />
+            style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }} />
         </div>
 
         <div style={{ marginBottom: 24 }}>
           <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>كلمة السر</label>
-          <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleLogin()}
-            style={{
-              width: "100%", padding: "12px 16px", borderRadius: 10,
-              background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-              color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif",
-            }} />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ width: "100%", padding: "12px 48px 12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal, sans-serif" }}
+            />
+            <button
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18 }}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
         </div>
 
         <button onClick={handleLogin} disabled={loading} style={{
@@ -95,9 +101,7 @@ export default function ClientLogin() {
 
         <p style={{ textAlign: "center", fontSize: 14, color: COLORS.muted }}>
           ما عندك حساب؟{" "}
-          <a href="/client/register" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>
-            سجل الآن
-          </a>
+          <a href="/client/register" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>سجل الآن</a>
         </p>
       </div>
     </div>
