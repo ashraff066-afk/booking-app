@@ -162,7 +162,27 @@ export default function ClientDashboard() {
             </div>
           ))}
         </div>
-
+{/* إشعار انتهاء الاشتراك */}
+{client?.subscription_end && (() => {
+  const daysLeft = Math.ceil((new Date(client.subscription_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  if (daysLeft > 7) return null;
+  return (
+    <div style={{ background: daysLeft <= 3 ? "#ef444422" : "#f59e0b22", border: `1px solid ${daysLeft <= 3 ? "#ef4444" : "#f59e0b"}`, borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ fontSize: 24 }}>{daysLeft <= 3 ? "🚨" : "⚠️"}</span>
+      <div>
+        <div style={{ fontWeight: 700, color: daysLeft <= 3 ? "#ef4444" : "#f59e0b", fontSize: 14 }}>
+          {daysLeft <= 0 ? "انتهى اشتراكك!" : `اشتراكك ينتهي خلال ${daysLeft} أيام`}
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>
+          تواصل معنا لتجديد الاشتراك
+        </div>
+      </div>
+      <button onClick={() => window.open("https://wa.me/9647739863056?text=أريد تجديد اشتراكي", "_blank")} style={{ marginRight: "auto", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 8, padding: "8px 16px", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>
+        تجديد الآن
+      </button>
+    </div>
+  );
+})()}
         {/* TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[{ id: "bookings", label: "📋 الحجوزات" }, { id: "schedule", label: "📅 جدول الدوام" }, { id: "settings", label: "⚙️ الإعدادات" }].map(t => (
