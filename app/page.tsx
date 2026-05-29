@@ -96,6 +96,10 @@ export default function App() {
       setRegError("كلمة السر يجب أن تكون 6 أحرف على الأقل");
       return;
     }
+    if (regPhone.replace(/\s/g, '').length !== 11) {
+  setRegError("رقم الهاتف يجب أن يكون 11 رقم");
+  return;
+}
     setRegLoading(true);
     setRegError("");
 
