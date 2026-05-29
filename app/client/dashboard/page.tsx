@@ -177,106 +177,121 @@ export default function ClientDashboard() {
   );
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal','Cairo',sans-serif", padding: 24 }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap'); *{box-sizing:border-box;margin:0;padding:0}`}</style>
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+    <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.text, fontFamily: "'Tajawal','Cairo',sans-serif", paddingBottom: 80 }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0e1a; }
+        ::-webkit-scrollbar-thumb { background: #1e2d45; border-radius: 2px; }
+      `}</style>
 
-        {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-          <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: COLORS.white }}>{client?.business_name || "لوحة التحكم"}</h1>
-            <p style={{ color: COLORS.muted, fontSize: 12, marginTop: 3 }}>{user?.email}</p>
-            {client?.address && <p style={{ color: COLORS.muted, fontSize: 12, marginTop: 2 }}>📍 {client.address}</p>}
-            {client?.slug && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "8px 14px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12, color: COLORS.muted }}>🔗 رابط حجزك:</span>
-                <span style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600 }}>/book/{client.slug}</span>
-                <button onClick={copyLink} style={{ background: copied ? "#00d4aa22" : COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 6, padding: "3px 10px", color: COLORS.accent, fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>{copied ? "✅ تم النسخ" : "📋 نسخ"}</button>
-                <button onClick={shareWhatsapp} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 6, padding: "3px 10px", color: "#25d366", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>📱 واتساب</button>
-              </div>
-            )}
+      {/* HEADER */}
+      <div style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "14px 16px", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div>
+            <h1 style={{ fontSize: 17, fontWeight: 800, color: COLORS.white }}>{client?.business_name || "لوحة التحكم"}</h1>
+            <p style={{ color: COLORS.muted, fontSize: 11, marginTop: 2 }}>{user?.email}</p>
           </div>
-          <button onClick={handleLogout} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "9px 18px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 13 }}>خروج</button>
+          <button onClick={handleLogout} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "7px 14px", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 12 }}>خروج</button>
         </div>
 
-        {/* تنبيه انتهاء الاشتراك */}
-        {client?.subscription_end && (() => {
-          const daysLeft = Math.ceil((new Date(client.subscription_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-          if (daysLeft > 7) return null;
-          return (
-            <div style={{ background: daysLeft <= 3 ? "#ef444422" : "#f59e0b22", border: `1px solid ${daysLeft <= 3 ? "#ef4444" : "#f59e0b"}`, borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 24 }}>{daysLeft <= 3 ? "🚨" : "⚠️"}</span>
-              <div>
-                <div style={{ fontWeight: 700, color: daysLeft <= 3 ? "#ef4444" : "#f59e0b", fontSize: 14 }}>{daysLeft <= 0 ? "انتهى اشتراكك!" : `اشتراكك ينتهي خلال ${daysLeft} أيام`}</div>
-                <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>تواصل معنا لتجديد الاشتراك</div>
-              </div>
-              <button onClick={() => window.open("https://wa.me/9647739863056?text=أريد تجديد اشتراكي", "_blank")} style={{ marginRight: "auto", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 8, padding: "8px 16px", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>تجديد الآن</button>
+        {/* رابط الحجز */}
+        {client?.slug && (
+          <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "8px 12px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, color: COLORS.muted }}>🔗</span>
+            <span style={{ fontSize: 11, color: COLORS.accent, fontWeight: 600, flex: 1 }}>/book/{client.slug}</span>
+            <button onClick={copyLink} style={{ background: copied ? "#00d4aa22" : COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 6, padding: "4px 10px", color: COLORS.accent, fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>{copied ? "✅ تم" : "📋 نسخ"}</button>
+            <button onClick={shareWhatsapp} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 6, padding: "4px 10px", color: "#25d366", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>📱</button>
+          </div>
+        )}
+      </div>
+
+      {/* تنبيه انتهاء الاشتراك */}
+      {client?.subscription_end && (() => {
+        const daysLeft = Math.ceil((new Date(client.subscription_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft > 7) return null;
+        return (
+          <div style={{ background: daysLeft <= 3 ? "#ef444422" : "#f59e0b22", border: `1px solid ${daysLeft <= 3 ? "#ef4444" : "#f59e0b"}`, margin: "12px 16px", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{daysLeft <= 3 ? "🚨" : "⚠️"}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: daysLeft <= 3 ? "#ef4444" : "#f59e0b", fontSize: 13 }}>{daysLeft <= 0 ? "انتهى اشتراكك!" : `ينتهي خلال ${daysLeft} أيام`}</div>
             </div>
-          );
-        })()}
+            <button onClick={() => window.open("https://wa.me/9647739863056?text=أريد تجديد اشتراكي", "_blank")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 7, padding: "6px 12px", color: "#000", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>تجديد</button>
+          </div>
+        );
+      })()}
 
-        {/* STATS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
-          {[
-            { label: "إجمالي الحجوزات", value: bookings.length, icon: "📋", color: COLORS.accent },
-            { label: "مؤكد", value: bookings.filter(b => b.status === "confirmed").length, icon: "✅", color: "#00d4aa" },
-            { label: "انتظار", value: bookings.filter(b => b.status === "pending").length, icon: "⏳", color: "#f59e0b" },
-          ].map((s, i) => (
-            <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{s.icon}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+      {/* STATS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, padding: "12px 16px" }}>
+        {[
+          { label: "الكل", value: bookings.length, icon: "📋", color: COLORS.accent },
+          { label: "مؤكد", value: bookings.filter(b => b.status === "confirmed").length, icon: "✅", color: "#00d4aa" },
+          { label: "انتظار", value: bookings.filter(b => b.status === "pending").length, icon: "⏳", color: "#f59e0b" },
+        ].map((s, i) => (
+          <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: "14px 10px", textAlign: "center" }}>
+            <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
-        {/* TABS */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          {[
-            { id: "bookings", label: "📋 الحجوزات" },
-            { id: "services", label: "🛎️ الخدمات" },
-            { id: "stats", label: "📊 الإحصائيات" },
-            { id: "schedule", label: "📅 جدول الدوام" },
-            { id: "settings", label: "⚙️ الإعدادات" },
-          ].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "10px 18px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "Tajawal,sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}` }}>{t.label}</button>
-          ))}
-        </div>
+      {/* TABS - سكرول أفقي */}
+      <div style={{ overflowX: "auto", padding: "0 16px 12px", display: "flex", gap: 8, scrollbarWidth: "none" }}>
+        <style>{`.tabs-scroll::-webkit-scrollbar{display:none}`}</style>
+        {[
+          { id: "bookings", label: "📋 الحجوزات" },
+          { id: "services", label: "🛎️ الخدمات" },
+          { id: "stats", label: "📊 الإحصاء" },
+          { id: "schedule", label: "📅 الدوام" },
+          { id: "settings", label: "⚙️ الإعدادات" },
+        ].map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontFamily: "Tajawal,sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}`, whiteSpace: "nowrap", flexShrink: 0 }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: "0 16px" }}>
 
         {/* BOOKINGS */}
         {activeTab === "bookings" && (
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontWeight: 700, color: COLORS.white }}>حجوزاتك</h3>
-              <button onClick={checkUser} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: "6px 14px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>🔄 تحديث</button>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontWeight: 700, color: COLORS.white, fontSize: 15 }}>حجوزاتك</h3>
+              <button onClick={checkUser} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: "5px 12px", color: COLORS.accent, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>🔄 تحديث</button>
             </div>
             {bookings.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-                <div>لا توجد حجوزات بعد</div>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>📭</div>
+                <div style={{ fontSize: 14 }}>لا توجد حجوزات بعد</div>
               </div>
             ) : (
               bookings.map((b, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", padding: "14px 20px", alignItems: "center", borderBottom: i < bookings.length - 1 ? `1px solid ${COLORS.border}` : "none", background: i % 2 === 0 ? "transparent" : "#ffffff04" }}>
-                  <div>
-                    <div style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{b.name}</div>
-                    <div style={{ fontSize: 11, color: COLORS.muted }}>{b.phone}</div>
-                  </div>
-                  <div style={{ color: COLORS.text, fontSize: 13 }}>{b.service}</div>
-                  <div style={{ color: COLORS.text, fontSize: 12 }}>{b.time}</div>
-                  <div>
-                    <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, fontWeight: 600, background: b.status === "confirmed" ? "#00d4aa22" : b.status === "cancelled" ? "#ef444422" : "#f59e0b22", color: b.status === "confirmed" ? "#00d4aa" : b.status === "cancelled" ? "#ef4444" : "#f59e0b", border: `1px solid ${b.status === "confirmed" ? "#00d4aa44" : b.status === "cancelled" ? "#ef444444" : "#f59e0b44"}` }}>
+                <div key={i} style={{ padding: "14px 16px", borderBottom: i < bookings.length - 1 ? `1px solid ${COLORS.border}` : "none", background: i % 2 === 0 ? "transparent" : "#ffffff04" }}>
+                  {/* صف الاسم والحالة */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 14 }}>{b.name}</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted }}>{b.phone}</div>
+                    </div>
+                    <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, fontWeight: 600, background: b.status === "confirmed" ? "#00d4aa22" : b.status === "cancelled" ? "#ef444422" : "#f59e0b22", color: b.status === "confirmed" ? "#00d4aa" : b.status === "cancelled" ? "#ef4444" : "#f59e0b", border: `1px solid ${b.status === "confirmed" ? "#00d4aa44" : b.status === "cancelled" ? "#ef444444" : "#f59e0b44"}` }}>
                       {b.status === "confirmed" ? "مؤكد" : b.status === "cancelled" ? "ملغي" : "انتظار"}
                     </span>
                   </div>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {/* الخدمة والوقت */}
+                  <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: COLORS.muted }}>🛎️ {b.service}</span>
+                    <span style={{ fontSize: 12, color: COLORS.muted }}>🕐 {b.time}</span>
+                  </div>
+                  {/* الأزرار */}
+                  <div style={{ display: "flex", gap: 8 }}>
                     {b.status === "pending" && (
-                      <button onClick={async () => { await updateStatus(b.id, "confirmed"); sendConfirmation(b); }} style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 7, padding: "4px 8px", color: "#00d4aa", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>✅ تأكيد</button>
+                      <button onClick={async () => { await updateStatus(b.id, "confirmed"); sendConfirmation(b); }} style={{ flex: 1, background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 8, padding: "8px", color: "#00d4aa", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>✅ تأكيد</button>
                     )}
                     {b.status !== "cancelled" && (
-                      <button onClick={() => updateStatus(b.id, "cancelled")} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 7, padding: "4px 8px", color: "#ef4444", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>إلغاء</button>
+                      <button onClick={() => updateStatus(b.id, "cancelled")} style={{ flex: 1, background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "8px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 700 }}>❌ إلغاء</button>
                     )}
-                    <button onClick={() => sendReminder(b)} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 7, padding: "4px 8px", color: "#25d366", fontSize: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>📱</button>
+                    <button onClick={() => sendReminder(b)} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 8, padding: "8px 14px", color: "#25d366", fontSize: 14, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>📱</button>
                   </div>
                 </div>
               ))
@@ -286,18 +301,18 @@ export default function ClientDashboard() {
 
         {/* SERVICES */}
         {activeTab === "services" && (
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>🛎️ خدماتك</h3>
-            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20 }}>حدد الخدمات مع المدة والسعر — ستظهر للزبائن عند الحجز</p>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
+            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>🛎️ خدماتك</h3>
+            <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 16 }}>ستظهر للزبائن عند الحجز</p>
 
             {/* إضافة خدمة */}
-            <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${COLORS.border}` }}>
-              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 12, fontSize: 14 }}>➕ إضافة خدمة جديدة</h4>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>اسم الخدمة</label>
-                  <input type="text" placeholder="مثلاً: كشف عام" value={newService} onChange={e => setNewService(e.target.value)} onKeyDown={e => e.key === "Enter" && addService()} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-                </div>
+            <div style={{ background: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 16, border: `1px solid ${COLORS.border}` }}>
+              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 12, fontSize: 13 }}>➕ إضافة خدمة جديدة</h4>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>اسم الخدمة</label>
+                <input type="text" placeholder="مثلاً: كشف عام" value={newService} onChange={e => setNewService(e.target.value)} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>المدة</label>
                   <select value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} style={{ width: "100%", padding: "10px 8px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 12, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
@@ -315,40 +330,29 @@ export default function ClientDashboard() {
                   <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>السعر (د.ع)</label>
                   <input type="number" placeholder="0" value={newPrice || ""} onChange={e => setNewPrice(Number(e.target.value))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
                 </div>
-                <button onClick={addService} disabled={addingService || !newService.trim()} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>+ إضافة</button>
               </div>
+              <button onClick={addService} disabled={addingService || !newService.trim()} style={{ width: "100%", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "11px", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>+ إضافة</button>
             </div>
 
             {/* قائمة الخدمات */}
             {services.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 32, color: COLORS.muted }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
-                <div style={{ marginBottom: 16 }}>ما أضفت خدمات بعد</div>
-                <button onClick={addDefaultServices} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>✨ أضف الخدمات الافتراضية</button>
+              <div style={{ textAlign: "center", padding: 24, color: COLORS.muted }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>🛎️</div>
+                <div style={{ marginBottom: 14, fontSize: 13 }}>ما أضفت خدمات بعد</div>
+                <button onClick={addDefaultServices} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 10, padding: "10px 20px", color: COLORS.accent, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>✨ أضف الافتراضية</button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* هيدر الجدول */}
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, padding: "8px 16px" }}>
-                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>الخدمة</span>
-                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>المدة</span>
-                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>السعر</span>
-                  <span></span>
-                </div>
                 {services.map((s, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, alignItems: "center", background: COLORS.surface, borderRadius: 10, padding: "12px 16px", border: `1px solid ${COLORS.border}` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 16 }}>🛎️</span>
-                      <span style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{s.name}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: COLORS.surface, borderRadius: 10, padding: "12px 14px", border: `1px solid ${COLORS.border}` }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: COLORS.white, fontSize: 13 }}>🛎️ {s.name}</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3 }}>⏱ {s.duration} دق &nbsp;{s.price > 0 ? `· ${s.price.toLocaleString()} د.ع` : "· مجاناً"}</div>
                     </div>
-                    <span style={{ fontSize: 12, color: COLORS.muted }}>⏱ {s.duration} دقيقة</span>
-                    <span style={{ fontSize: 12, color: s.price > 0 ? COLORS.accent : COLORS.muted, fontWeight: s.price > 0 ? 700 : 400 }}>
-                      {s.price > 0 ? `${s.price.toLocaleString()} د.ع` : "مجاناً"}
-                    </span>
-                    <button onClick={() => deleteService(s.id)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "5px 10px", color: "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حذف</button>
+                    <button onClick={() => deleteService(s.id)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "6px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حذف</button>
                   </div>
                 ))}
-                <button onClick={addDefaultServices} style={{ background: COLORS.surface, border: `1px dashed ${COLORS.border}`, borderRadius: 10, padding: "10px", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginTop: 8 }}>+ إضافة الخدمات الافتراضية</button>
+                <button onClick={addDefaultServices} style={{ background: COLORS.surface, border: `1px dashed ${COLORS.border}`, borderRadius: 10, padding: "10px", color: COLORS.muted, fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginTop: 4 }}>+ إضافة الافتراضية</button>
               </div>
             )}
           </div>
@@ -357,25 +361,25 @@ export default function ClientDashboard() {
         {/* STATS */}
         {activeTab === "stats" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               {[
-                { label: "حجوزات هذا الشهر", value: thisMonth.length, icon: "📅", color: COLORS.accent, sub: monthDiff >= 0 ? `+${monthDiff} عن الشهر الماضي` : `${monthDiff} عن الشهر الماضي`, subColor: monthDiff >= 0 ? "#00d4aa" : "#ef4444" },
-                { label: "نسبة التأكيد", value: `${confirmRate}%`, icon: "✅", color: "#00d4aa", sub: `${bookings.filter(b => b.status === "confirmed").length} من ${bookings.length} حجز`, subColor: COLORS.muted },
+                { label: "هذا الشهر", value: thisMonth.length, icon: "📅", color: COLORS.accent, sub: monthDiff >= 0 ? `+${monthDiff} عن الماضي` : `${monthDiff} عن الماضي`, subColor: monthDiff >= 0 ? "#00d4aa" : "#ef4444" },
+                { label: "نسبة التأكيد", value: `${confirmRate}%`, icon: "✅", color: "#00d4aa", sub: `${bookings.filter(b => b.status === "confirmed").length} من ${bookings.length}`, subColor: COLORS.muted },
                 { label: "متوسط التقييم", value: avgRating, icon: "⭐", color: "#f59e0b", sub: `${reviews.length} تقييم`, subColor: COLORS.muted },
                 { label: "الشهر الماضي", value: lastMonth.length, icon: "📈", color: "#64748b", sub: "حجوزات", subColor: COLORS.muted },
               ].map((s, i) => (
-                <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 12, color: s.subColor, marginTop: 6, fontWeight: 600 }}>{s.sub}</div>
+                <div key={i} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{s.icon}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3 }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: s.subColor, marginTop: 4, fontWeight: 600 }}>{s.sub}</div>
                 </div>
               ))}
             </div>
-            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-              <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 16 }}>📅 حجوزات هذا الشهر</h3>
+            <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16 }}>
+              <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 14, fontSize: 14 }}>📅 آخر الحجوزات</h3>
               {thisMonth.length === 0 ? (
-                <div style={{ textAlign: "center", color: COLORS.muted, padding: 20 }}>لا توجد حجوزات هذا الشهر</div>
+                <div style={{ textAlign: "center", color: COLORS.muted, padding: 16, fontSize: 13 }}>لا توجد حجوزات هذا الشهر</div>
               ) : (
                 thisMonth.slice(0, 5).map((b, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < Math.min(thisMonth.length, 5) - 1 ? `1px solid ${COLORS.border}` : "none" }}>
@@ -384,7 +388,7 @@ export default function ClientDashboard() {
                       <div style={{ fontSize: 11, color: COLORS.muted }}>{b.service}</div>
                     </div>
                     <div style={{ textAlign: "left" }}>
-                      <div style={{ fontSize: 12, color: COLORS.text }}>{b.time}</div>
+                      <div style={{ fontSize: 11, color: COLORS.text }}>{b.time}</div>
                       <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600, background: b.status === "confirmed" ? "#00d4aa22" : b.status === "cancelled" ? "#ef444422" : "#f59e0b22", color: b.status === "confirmed" ? "#00d4aa" : b.status === "cancelled" ? "#ef4444" : "#f59e0b" }}>
                         {b.status === "confirmed" ? "مؤكد" : b.status === "cancelled" ? "ملغي" : "انتظار"}
                       </span>
@@ -398,42 +402,44 @@ export default function ClientDashboard() {
 
         {/* SCHEDULE */}
         {activeTab === "schedule" && (
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>📅 جدول الدوام</h3>
-            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>حدد أيام وساعات عملك</p>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 12, fontWeight: 600 }}>أيام الدوام</label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
+            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>📅 جدول الدوام</h3>
+            <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 20 }}>حدد أيام وساعات عملك</p>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>أيام الدوام</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
                 {DAYS.map(day => (
-                  <button key={day.id} onClick={() => toggleDay(day.id)} style={{ padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 13, fontWeight: 600, background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface, color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted, border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}` }}>
-                    {workDays.includes(day.id) ? "✓ " : ""}{day.label}
+                  <button key={day.id} onClick={() => toggleDay(day.id)} style={{ padding: "9px 4px", borderRadius: 9, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontSize: 11, fontWeight: 600, background: workDays.includes(day.id) ? COLORS.accentDim : COLORS.surface, color: workDays.includes(day.id) ? COLORS.accent : COLORS.muted, border: `2px solid ${workDays.includes(day.id) ? COLORS.accent : COLORS.border}`, textAlign: "center" }}>
+                    {workDays.includes(day.id) ? "✓" : ""} {day.label}
                   </button>
                 ))}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               <div>
-                <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت البداية</label>
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6, fontWeight: 600 }}>🕐 البداية</label>
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>🕐 وقت الانتهاء</label>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6, fontWeight: 600 }}>🕐 النهاية</label>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
               </div>
             </div>
-            <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>👥 أقصى حجوزات باليوم: <span style={{ color: COLORS.accent, fontSize: 16 }}>{maxPerDay}</span></label>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>👥 أقصى حجوزات: <span style={{ color: COLORS.accent, fontSize: 15 }}>{maxPerDay}</span></label>
               <input type="range" min={1} max={100} value={maxPerDay} onChange={e => setMaxPerDay(Number(e.target.value))} style={{ width: "100%", accentColor: COLORS.accent }} />
             </div>
-            <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 10, fontSize: 14 }}>ملخص جدولك</h4>
-              <div style={{ fontSize: 13, color: COLORS.muted, lineHeight: 2 }}>
-                <div>📅 أيام الدوام: <span style={{ color: COLORS.text }}>{workDays.map(d => DAYS.find(x => x.id === d)?.label).join("، ")}</span></div>
-                <div>🕐 ساعات العمل: <span style={{ color: COLORS.text }}>{startTime} — {endTime}</span></div>
-                <div>👥 أقصى حجوزات: <span style={{ color: COLORS.accent, fontWeight: 700 }}>{maxPerDay} حجز / يوم</span></div>
-              </div>
+
+            <div style={{ background: COLORS.surface, borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 12, color: COLORS.muted, lineHeight: 2 }}>
+              <div>📅 <span style={{ color: COLORS.text }}>{workDays.map(d => DAYS.find(x => x.id === d)?.label).join("، ")}</span></div>
+              <div>🕐 <span style={{ color: COLORS.text }}>{startTime} — {endTime}</span></div>
+              <div>👥 <span style={{ color: COLORS.accent, fontWeight: 700 }}>{maxPerDay} حجز / يوم</span></div>
             </div>
-            <button onClick={saveSchedule} disabled={savingSchedule || workDays.length === 0} style={{ width: "100%", padding: "14px", background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSchedule || workDays.length === 0 ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+
+            <button onClick={saveSchedule} disabled={savingSchedule || workDays.length === 0} style={{ width: "100%", padding: "13px", background: scheduleSaved ? "#00d4aa" : workDays.length === 0 ? "#333" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
               {savingSchedule ? "جاري الحفظ..." : scheduleSaved ? "✅ تم الحفظ!" : "💾 حفظ الجدول"}
             </button>
           </div>
@@ -441,31 +447,31 @@ export default function ClientDashboard() {
 
         {/* SETTINGS */}
         {activeTab === "settings" && (
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>⚙️ إعدادات الحساب</h3>
-            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 24 }}>عدّل معلومات مشروعك</p>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم العمل</label>
-              <input type="text" value={settingsName} onChange={e => setSettingsName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الواتساب</label>
-              <input type="tel" value={settingsPhone} onChange={e => setSettingsPhone(e.target.value)} placeholder="07xx xxx xxxx" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-              <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>هذا الرقم سيصله إشعار الواتساب عند كل حجز</p>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>📍 العنوان</label>
-              <input type="text" value={settingsAddress} onChange={e => setSettingsAddress(e.target.value)} placeholder="مثال: شارع فلسطين، بغداد" style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
-              <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
+            <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>⚙️ الإعدادات</h3>
+            <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 20 }}>عدّل معلومات مشروعك</p>
+
+            {[
+              { label: "اسم العمل", value: settingsName, setter: setSettingsName, type: "text", placeholder: "مثال: عيادة د. أحمد" },
+              { label: "رقم الواتساب", value: settingsPhone, setter: setSettingsPhone, type: "tel", placeholder: "07xx xxx xxxx" },
+              { label: "📍 العنوان", value: settingsAddress, setter: setSettingsAddress, type: "text", placeholder: "مثال: شارع فلسطين" },
+            ].map((f, i) => (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{f.label}</label>
+                <input type={f.type} placeholder={f.placeholder} value={f.value} onChange={e => f.setter(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+              </div>
+            ))}
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
+              <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
                 <option value="clinic">🏥 عيادة</option>
                 <option value="salon">✂️ صالون</option>
                 <option value="hotel">🏨 شاليه / فندق</option>
               </select>
             </div>
-            <button onClick={saveSettings} disabled={savingSettings} style={{ width: "100%", padding: "14px", background: settingsSaved ? "#00d4aa" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: savingSettings ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+
+            <button onClick={saveSettings} disabled={savingSettings} style={{ width: "100%", padding: "13px", background: settingsSaved ? "#00d4aa" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
               {savingSettings ? "جاري الحفظ..." : settingsSaved ? "✅ تم الحفظ!" : "💾 حفظ الإعدادات"}
             </button>
           </div>
