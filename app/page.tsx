@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { supabase } from "./supabase";
 
 const COLORS = {
   bg: "#0a0e1a", surface: "#111827", card: "#1a2235",
@@ -34,16 +35,36 @@ const SECTORS_LIST = [
   { icon: "🏨", label: "فنادق وشاليهات", desc: "غرف وباقات — حجز سهل وإشعار فوري", color: "#f59e0b" },
 ];
 
+const generateSlug = (name: string) => {
+  const map: Record<string, string> = {
+    'ع':'a','ي':'y','ا':'a','د':'d','ة':'h','ه':'h','ب':'b','ت':'t',
+    'ث':'th','ج':'j','ح':'h','خ':'kh','ذ':'z','ر':'r','ز':'z','س':'s',
+    'ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','غ':'gh','ف':'f','ق':'q',
+    'ك':'k','ل':'l','م':'m','ن':'n','و':'w','ء':'a','أ':'a','إ':'i',
+    'آ':'a','ى':'a','ئ':'y','ؤ':'w',
+  };
+  const converted = name.split('').map(c => map[c] || c).join('');
+  const slug = converted.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return slug + '-' + Date.now().toString().slice(-4);
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("landing");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [contactSector, setContactSector] = useState("clinic");
-  const [contactName, setContactName] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactPayment, setContactPayment] = useState("");
-  const [contactSent, setContactSent] = useState(false);
+  // فورم التسجيل
+  const [regSector, setRegSector] = useState("clinic");
+  const [regName, setRegName] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regPayment, setRegPayment] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState("");
+  const [regSuccess, setRegSuccess] = useState(false);
 
+  // Plans Modal
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [planName, setPlanName] = useState("");
   const [planPrice, setPlanPrice] = useState("");
@@ -52,18 +73,47 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [step, setStep] = useState(1);
 
-  const handleContact = () => {
-    if (!contactName || !contactPhone || !contactPayment) {
-      alert("يرجى إدخال جميع البيانات واختيار طريقة الدفع");
+  const handleRegister = async () => {
+    if (!regName || !regPhone || !regEmail || !regPassword || !regPayment) {
+      setRegError("يرجى إدخال جميع البيانات واختيار طريقة الدفع");
       return;
     }
-    const sector = SECTORS_DATA[contactSector as keyof typeof SECTORS_DATA];
-    const paymentLabel = contactPayment === "whatsapp" ? "💬 دفع عبر واتساب" : "💳 تحويل بنكي";
-    const msg = `مرحبا، أريد تسجيل حساب على موعدي 👋\n\nنوع العمل: ${sector.icon} ${sector.label}\nاسم العمل: ${contactName}\nرقم الهاتف: ${contactPhone}\nطريقة الدفع: ${paymentLabel}`;
-    window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
-    setContactSent(true);
-    setTimeout(() => setContactSent(false), 4000);
-    setContactName(""); setContactPhone(""); setContactPayment("");
+    if (regPassword.length < 6) {
+      setRegError("كلمة السر يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+    setRegLoading(true);
+    setRegError("");
+
+    const { data, error: signUpError } = await supabase.auth.signUp({ email: regEmail, password: regPassword });
+
+    if (signUpError) {
+      setRegError(signUpError.message.includes("already registered") ? "هذا الإيميل مسجل مسبقاً" : signUpError.message);
+      setRegLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      const slug = generateSlug(regName);
+      await supabase.from("clients").insert([{
+        user_id: data.user.id,
+        business_name: regName,
+        sector: regSector,
+        phone: regPhone,
+        is_active: false,
+        slug,
+      }]);
+
+      // إشعار واتساب للأدمن
+      const sector = SECTORS_DATA[regSector as keyof typeof SECTORS_DATA];
+      const paymentLabel = regPayment === "whatsapp" ? "💬 واتساب" : "💳 تحويل بنكي";
+      const bookingLink = `${window.location.origin}/book/${slug}`;
+      const msg = `🔔 عميل جديد سجل!\n\nاسم العمل: ${regName}\nنوع العمل: ${sector.icon} ${sector.label}\nالهاتف: ${regPhone}\nالإيميل: ${regEmail}\nطريقة الدفع: ${paymentLabel}\n\nرابط حجزه:\n${bookingLink}\n\nفعّله من لوحة الأدمن ✅`;
+      window.open(`https://wa.me/9647739863056?text=${encodeURIComponent(msg)}`, "_blank");
+
+      setRegSuccess(true);
+    }
+    setRegLoading(false);
   };
 
   const openPlanModal = (plan: any) => {
@@ -153,17 +203,17 @@ export default function App() {
           <span style={{ fontSize: 22, fontWeight: 900, color: COLORS.white }}>موعدي</span>
         </div>
         <div className="desktop-nav" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {[{ id: "landing", label: "الرئيسية" }, { id: "contact", label: "ابدأ الآن" }, { id: "plans", label: "الأسعار" }].map(t => (
+          {[{ id: "landing", label: "الرئيسية" }, { id: "register", label: "ابدأ الآن" }, { id: "plans", label: "الأسعار" }].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal,sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.muted }}>{t.label}</button>
           ))}
-          <button onClick={() => setActiveTab("contact")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", padding: "9px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, color: "#000", border: "none", cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginRight: 8 }}>ابدأ الآن</button>
+          <button onClick={() => setActiveTab("register")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", padding: "9px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, color: "#000", border: "none", cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginRight: 8 }}>ابدأ الآن</button>
         </div>
         <button className="mobile-btn" onClick={() => setMenuOpen(!menuOpen)} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "7px 12px", color: COLORS.text, cursor: "pointer", fontSize: 18, display: "none" }}>☰</button>
       </nav>
 
       {menuOpen && (
         <div className="mobile-menu" style={{ background: "#0d1424", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 16px" }}>
-          {[{ id: "landing", label: "🏠 الرئيسية" }, { id: "contact", label: "🚀 ابدأ الآن" }, { id: "plans", label: "💰 الأسعار" }].map(t => (
+          {[{ id: "landing", label: "🏠 الرئيسية" }, { id: "register", label: "🚀 ابدأ الآن" }, { id: "plans", label: "💰 الأسعار" }].map(t => (
             <button key={t.id} onClick={() => { setActiveTab(t.id); setMenuOpen(false); }} style={{ display: "block", width: "100%", padding: "12px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal,sans-serif", background: "transparent", color: COLORS.text, textAlign: "right", marginBottom: 4 }}>{t.label}</button>
           ))}
         </div>
@@ -183,7 +233,7 @@ export default function App() {
             </h1>
             <p style={{ fontSize: 18, color: COLORS.muted, maxWidth: 600, margin: "0 auto 32px", lineHeight: 1.8 }}>نظام حجوزات احترافي للعيادات والصالونات والشاليهات — إشعار واتساب فوري، لوحة تحكم كاملة</p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
-              <button onClick={() => setActiveTab("contact")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, padding: "16px 36px", fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>🚀 ابدأ الآن</button>
+              <button onClick={() => setActiveTab("register")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, padding: "16px 36px", fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>🚀 ابدأ الآن</button>
               <button onClick={() => setActiveTab("plans")} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 36px", fontSize: 17, fontWeight: 600, cursor: "pointer", color: COLORS.text, fontFamily: "Tajawal,sans-serif" }}>شوف الأسعار</button>
             </div>
             <p style={{ color: COLORS.muted, fontSize: 13 }}>✅ إعداد في 5 دقائق · ✅ دعم فني مجاني · ✅ بالدينار العراقي</p>
@@ -230,7 +280,7 @@ export default function App() {
                     <div style={{ fontSize: 52, marginBottom: 16 }}>{s.icon}</div>
                     <h3 style={{ fontWeight: 800, color: COLORS.white, marginBottom: 10, fontSize: 20 }}>{s.label}</h3>
                     <p style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>{s.desc}</p>
-                    <button onClick={() => setActiveTab("contact")} style={{ background: `${s.color}22`, border: `1px solid ${s.color}55`, borderRadius: 10, padding: "10px 20px", color: s.color, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>ابدأ الآن ←</button>
+                    <button onClick={() => setActiveTab("register")} style={{ background: `${s.color}22`, border: `1px solid ${s.color}55`, borderRadius: 10, padding: "10px 20px", color: s.color, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>ابدأ الآن ←</button>
                   </div>
                 ))}
               </div>
@@ -243,8 +293,8 @@ export default function App() {
               <p style={{ color: COLORS.muted, fontSize: 16, marginBottom: 48 }}>3 خطوات بس</p>
               <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24 }}>
                 {[
-                  { step: "1", title: "تواصل معنا", desc: "أرسل نوع عملك واسمه على واتساب", icon: "💬" },
-                  { step: "2", title: "نفعّل حسابك", desc: "نسوي لك حساب خاص برابط حجز مخصص", icon: "⚙️" },
+                  { step: "1", title: "سجل حسابك", desc: "أدخل بيانات عملك في دقيقتين", icon: "📝" },
+                  { step: "2", title: "نفعّل حسابك", desc: "بعد الدفع نفعّل حسابك ونرسل رابطك", icon: "⚙️" },
                   { step: "3", title: "ابدأ تستقبل الحجوزات", desc: "شارك الرابط وزبائنك يحجزون مباشرة", icon: "🚀" },
                 ].map((s, i) => (
                   <div key={i} style={{ textAlign: "center" }}>
@@ -265,7 +315,7 @@ export default function App() {
                 <h2 style={{ fontSize: 36, fontWeight: 900, color: COLORS.white, marginBottom: 12 }}>جاهز تنظم مشروعك؟</h2>
                 <p style={{ color: COLORS.muted, fontSize: 16, marginBottom: 32, lineHeight: 1.8 }}>انضم لمئات أصحاب الأعمال اللي يستخدمون موعدي اليوم</p>
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                  <button onClick={() => setActiveTab("contact")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, padding: "16px 40px", fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>ابدأ الآن ✓</button>
+                  <button onClick={() => setActiveTab("register")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, padding: "16px 40px", fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>ابدأ الآن ✓</button>
                   <button onClick={() => window.open("https://wa.me/9647739863056?text=مرحبا، أريد أعرف أكثر عن موعدي", "_blank")} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 40px", fontSize: 17, fontWeight: 600, cursor: "pointer", color: COLORS.text, fontFamily: "Tajawal,sans-serif" }}>💬 تواصل معنا</button>
                 </div>
               </div>
@@ -282,73 +332,107 @@ export default function App() {
         </div>
       )}
 
-      {/* CONTACT */}
-      {activeTab === "contact" && (
-        <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", padding: "48px 24px" }}>
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>🚀</div>
-            <h2 style={{ fontSize: 28, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>ابدأ مع موعدي</h2>
-            <p style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8 }}>أدخل بياناتك وسنتواصل معك على واتساب لإكمال الإجراءات</p>
-          </div>
-
-          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 28 }}>
-            {/* القطاع */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>نوع عملك</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                {Object.entries(SECTORS_DATA).map(([key, val]) => (
-                  <div key={key} onClick={() => setContactSector(key)} style={{ padding: "14px 8px", borderRadius: 12, textAlign: "center", cursor: "pointer", background: contactSector === key ? `${val.color}22` : COLORS.surface, border: `2px solid ${contactSector === key ? val.color : COLORS.border}`, transition: "all 0.2s" }}>
-                    <div style={{ fontSize: 26 }}>{val.icon}</div>
-                    <div style={{ fontSize: 12, color: contactSector === key ? val.color : COLORS.muted, fontWeight: 600, marginTop: 6 }}>{val.label}</div>
-                  </div>
-                ))}
+      {/* REGISTER */}
+      {activeTab === "register" && (
+        <div className="fade-in" style={{ maxWidth: 580, margin: "0 auto", padding: "48px 24px" }}>
+          {regSuccess ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+              <h2 style={{ fontSize: 26, fontWeight: 900, color: COLORS.white, marginBottom: 12 }}>تم التسجيل بنجاح!</h2>
+              <p style={{ color: COLORS.muted, fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>
+                تم إرسال بياناتك — سنتواصل معك على واتساب لتفعيل حسابك وإرسال رابط حجزك قريباً ✨
+              </p>
+              <button onClick={() => window.location.href = "/client"} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "13px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+                دخول للوحة التحكم
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ textAlign: "center", marginBottom: 32 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div>
+                <h2 style={{ fontSize: 28, fontWeight: 900, color: COLORS.white, marginBottom: 8 }}>إنشاء حساب جديد</h2>
+                <p style={{ color: COLORS.muted, fontSize: 14 }}>سجّل بياناتك وابدأ تستقبل الحجوزات</p>
               </div>
-            </div>
 
-            {/* اسم العمل */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم عملك</label>
-              <input type="text" placeholder="مثال: عيادة د. أحمد" value={contactName} onChange={e => setContactName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-            </div>
+              <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: 28 }}>
+                {regError && (
+                  <div style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: "#ef4444", fontSize: 13 }}>{regError}</div>
+                )}
 
-            {/* رقم الهاتف */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
-              <input type="tel" placeholder="07xx xxx xxxx" value={contactPhone} onChange={e => setContactPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-            </div>
-
-            {/* طريقة الدفع */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>💳 طريقة الدفع المفضلة</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  { id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" },
-                  { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" },
-                ].map(opt => (
-                  <div key={opt.id} onClick={() => setContactPayment(opt.id)} style={{ padding: "12px 16px", borderRadius: 12, background: contactPayment === opt.id ? COLORS.accentDim : COLORS.surface, border: `2px solid ${contactPayment === opt.id ? COLORS.accent : COLORS.border}`, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", transition: "all 0.2s" }}>
-                    <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 13 }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
-                    </div>
-                    {contactPayment === opt.id && <span style={{ color: COLORS.accent, fontSize: 18 }}>✓</span>}
+                {/* القطاع */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>نوع عملك</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                    {Object.entries(SECTORS_DATA).map(([key, val]) => (
+                      <div key={key} onClick={() => setRegSector(key)} style={{ padding: "14px 8px", borderRadius: 12, textAlign: "center", cursor: "pointer", background: regSector === key ? `${val.color}22` : COLORS.surface, border: `2px solid ${regSector === key ? val.color : COLORS.border}`, transition: "all 0.2s" }}>
+                        <div style={{ fontSize: 26 }}>{val.icon}</div>
+                        <div style={{ fontSize: 12, color: regSector === key ? val.color : COLORS.muted, fontWeight: 600, marginTop: 6 }}>{val.label}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* اسم العمل */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>اسم عملك</label>
+                  <input type="text" placeholder="مثال: عيادة د. أحمد" value={regName} onChange={e => setRegName(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                </div>
+
+                {/* رقم الهاتف */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>رقم الهاتف (واتساب)</label>
+                  <input type="tel" placeholder="07xx xxx xxxx" value={regPhone} onChange={e => setRegPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                </div>
+
+                {/* الإيميل */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>الإيميل</label>
+                  <input type="email" placeholder="example@email.com" value={regEmail} onChange={e => setRegEmail(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                </div>
+
+                {/* كلمة السر */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>كلمة السر</label>
+                  <div style={{ position: "relative" }}>
+                    <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={regPassword} onChange={e => setRegPassword(e.target.value)} autoComplete="new-password" style={{ width: "100%", padding: "12px 48px 12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                    <button onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18 }}>
+                      {showPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>على الأقل 6 أحرف</p>
+                </div>
+
+                {/* طريقة الدفع */}
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>💳 طريقة الدفع المفضلة</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[
+                      { id: "whatsapp", icon: "💬", label: "دفع عبر واتساب", desc: "تتواصل معنا وتدفع يدوياً" },
+                      { id: "card", icon: "💳", label: "تحويل بنكي", desc: "تحويل على بطاقة الرافدين" },
+                    ].map(opt => (
+                      <div key={opt.id} onClick={() => setRegPayment(opt.id)} style={{ padding: "12px 16px", borderRadius: 12, background: regPayment === opt.id ? COLORS.accentDim : COLORS.surface, border: `2px solid ${regPayment === opt.id ? COLORS.accent : COLORS.border}`, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", transition: "all 0.2s" }}>
+                        <span style={{ fontSize: 22 }}>{opt.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, color: COLORS.white, fontSize: 13 }}>{opt.label}</div>
+                          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{opt.desc}</div>
+                        </div>
+                        {regPayment === opt.id && <span style={{ color: COLORS.accent, fontSize: 18 }}>✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button onClick={handleRegister} disabled={regLoading} style={{ width: "100%", padding: "14px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: regLoading ? "not-allowed" : "pointer", color: "#000", fontFamily: "Tajawal,sans-serif", marginBottom: 12 }}>
+                  {regLoading ? "جاري التسجيل..." : "إنشاء الحساب 🚀"}
+                </button>
+
+                <p style={{ textAlign: "center", fontSize: 13, color: COLORS.muted }}>
+                  عندك حساب؟{" "}
+                  <a href="/client" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>سجل دخول</a>
+                </p>
               </div>
-            </div>
-
-            <button onClick={handleContact} style={{ width: "100%", padding: "14px", background: contactSent ? "#00d4aa" : "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif", marginBottom: 12 }}>
-              {contactSent ? "✅ تم الإرسال! انتظر تواصلنا" : "📱 تواصل معنا على واتساب"}
-            </button>
-            <p style={{ textAlign: "center", fontSize: 12, color: COLORS.muted }}>سنرد عليك خلال ساعات قليلة ✨</p>
-          </div>
-
-          <div style={{ textAlign: "center", marginTop: 20 }}>
-            <p style={{ color: COLORS.muted, fontSize: 13 }}>
-              عندك حساب؟{" "}
-              <a href="/client" style={{ color: COLORS.accent, textDecoration: "none", fontWeight: 700 }}>سجل دخول</a>
-            </p>
-          </div>
+            </>
+          )}
         </div>
       )}
 
@@ -361,8 +445,8 @@ export default function App() {
           </div>
           <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
             {PLANS.map((p, i) => (
-              <div key={i} className="hover-card" style={{ background: COLORS.card, border: `2px solid ${p.popular ? p.color : COLORS.border}`, borderRadius: 20, padding: 28, position: "relative", boxShadow: p.popular ? `0 0 40px ${p.color}33` : "none" }}>
-                {p.popular && <div style={{ position: "absolute", top: -14, right: "50%", transform: "translateX(50%)", background: p.color, color: "#000", fontSize: 11, padding: "4px 16px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap" }}>⭐ الأكثر مبيعاً</div>}
+              <div key={i} className="hover-card" style={{ background: COLORS.card, border: `2px solid ${(p as any).popular ? p.color : COLORS.border}`, borderRadius: 20, padding: 28, position: "relative", boxShadow: (p as any).popular ? `0 0 40px ${p.color}33` : "none" }}>
+                {(p as any).popular && <div style={{ position: "absolute", top: -14, right: "50%", transform: "translateX(50%)", background: p.color, color: "#000", fontSize: 11, padding: "4px 16px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap" }}>⭐ الأكثر مبيعاً</div>}
                 <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.white, marginBottom: 8 }}>{p.name}</div>
                 <div style={{ marginBottom: 4 }}>
                   <span style={{ fontSize: 36, fontWeight: 900, color: p.color }}>{p.price}</span>
@@ -376,7 +460,7 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => openPlanModal(p)} style={{ width: "100%", padding: "13px", background: p.popular ? "linear-gradient(90deg,#00d4aa,#0070f3)" : "transparent", border: p.popular ? "none" : `1px solid ${p.color}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", color: p.popular ? "#000" : p.color, fontFamily: "Tajawal,sans-serif" }}>اشترك الآن</button>
+                <button onClick={() => openPlanModal(p)} style={{ width: "100%", padding: "13px", background: (p as any).popular ? "linear-gradient(90deg,#00d4aa,#0070f3)" : "transparent", border: (p as any).popular ? "none" : `1px solid ${p.color}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", color: (p as any).popular ? "#000" : p.color, fontFamily: "Tajawal,sans-serif" }}>اشترك الآن</button>
               </div>
             ))}
           </div>
