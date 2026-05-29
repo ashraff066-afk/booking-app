@@ -48,6 +48,7 @@ export default function ClientDashboard() {
 
   const [newService, setNewService] = useState("");
   const [newDuration, setNewDuration] = useState(30);
+  const [newPrice, setNewPrice] = useState(0);
   const [addingService, setAddingService] = useState(false);
 
   useEffect(() => { checkUser(); }, []);
@@ -111,12 +112,7 @@ export default function ClientDashboard() {
   const saveSettings = async () => {
     if (!client) return;
     setSavingSettings(true);
-    await supabase.from("clients").update({
-      business_name: settingsName,
-      phone: settingsPhone,
-      sector: settingsSector,
-      address: settingsAddress,
-    }).eq("id", client.id);
+    await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector, address: settingsAddress }).eq("id", client.id);
     setSavingSettings(false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 3000);
@@ -126,9 +122,8 @@ export default function ClientDashboard() {
   const addService = async () => {
     if (!newService.trim() || !client) return;
     setAddingService(true);
-    await supabase.from("services").insert([{ client_id: client.id, name: newService.trim(), duration: newDuration }]);
-    setNewService("");
-    setNewDuration(30);
+    await supabase.from("services").insert([{ client_id: client.id, name: newService.trim(), duration: newDuration, price: newPrice }]);
+    setNewService(""); setNewDuration(30); setNewPrice(0);
     setAddingService(false);
     checkUser();
   };
@@ -142,7 +137,7 @@ export default function ClientDashboard() {
     if (!client) return;
     const defaults = DEFAULT_SERVICES[client.sector] || [];
     for (const name of defaults) {
-      await supabase.from("services").insert([{ client_id: client.id, name, duration: client.sector === "clinic" ? 10 : client.sector === "salon" ? 30 : 60 }]);
+      await supabase.from("services").insert([{ client_id: client.id, name, duration: client.sector === "clinic" ? 10 : client.sector === "salon" ? 30 : 60, price: 0 }]);
     }
     checkUser();
   };
@@ -293,21 +288,38 @@ export default function ClientDashboard() {
         {activeTab === "services" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 24 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 6 }}>🛎️ خدماتك</h3>
-            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20 }}>حدد الخدمات المتوفرة عندك — ستظهر للزبائن عند الحجز</p>
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-              <input type="text" placeholder="اسم الخدمة مثلاً: كشف عام" value={newService} onChange={e => setNewService(e.target.value)} onKeyDown={e => e.key === "Enter" && addService()} style={{ flex: 1, minWidth: 200, padding: "11px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-              <select value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} style={{ padding: "11px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
-                <option value={10}>10 دقائق</option>
-                <option value={15}>15 دقيقة</option>
-                <option value={20}>20 دقيقة</option>
-                <option value={30}>30 دقيقة</option>
-                <option value={45}>45 دقيقة</option>
-                <option value={60}>ساعة</option>
-                <option value={90}>ساعة ونص</option>
-                <option value={120}>ساعتين</option>
-              </select>
-              <button onClick={addService} disabled={addingService || !newService.trim()} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "11px 20px", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>+ إضافة</button>
+            <p style={{ color: COLORS.muted, fontSize: 13, marginBottom: 20 }}>حدد الخدمات مع المدة والسعر — ستظهر للزبائن عند الحجز</p>
+
+            {/* إضافة خدمة */}
+            <div style={{ background: COLORS.surface, borderRadius: 12, padding: 16, marginBottom: 20, border: `1px solid ${COLORS.border}` }}>
+              <h4 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 12, fontSize: 14 }}>➕ إضافة خدمة جديدة</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>اسم الخدمة</label>
+                  <input type="text" placeholder="مثلاً: كشف عام" value={newService} onChange={e => setNewService(e.target.value)} onKeyDown={e => e.key === "Enter" && addService()} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>المدة</label>
+                  <select value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} style={{ width: "100%", padding: "10px 8px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 12, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
+                    <option value={10}>10 دق</option>
+                    <option value={15}>15 دق</option>
+                    <option value={20}>20 دق</option>
+                    <option value={30}>30 دق</option>
+                    <option value={45}>45 دق</option>
+                    <option value={60}>ساعة</option>
+                    <option value={90}>ساعة ونص</option>
+                    <option value={120}>ساعتين</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>السعر (د.ع)</label>
+                  <input type="number" placeholder="0" value={newPrice || ""} onChange={e => setNewPrice(Number(e.target.value))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                </div>
+                <button onClick={addService} disabled={addingService || !newService.trim()} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif", whiteSpace: "nowrap" }}>+ إضافة</button>
+              </div>
             </div>
+
+            {/* قائمة الخدمات */}
             {services.length === 0 ? (
               <div style={{ textAlign: "center", padding: 32, color: COLORS.muted }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🛎️</div>
@@ -316,16 +328,24 @@ export default function ClientDashboard() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* هيدر الجدول */}
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, padding: "8px 16px" }}>
+                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>الخدمة</span>
+                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>المدة</span>
+                  <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>السعر</span>
+                  <span></span>
+                </div>
                 {services.map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: COLORS.surface, borderRadius: 10, padding: "12px 16px", border: `1px solid ${COLORS.border}` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 18 }}>🛎️</span>
-                      <div>
-                        <div style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{s.name}</div>
-                        <div style={{ fontSize: 11, color: COLORS.muted }}>{s.duration} دقيقة</div>
-                      </div>
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, alignItems: "center", background: COLORS.surface, borderRadius: 10, padding: "12px 16px", border: `1px solid ${COLORS.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 16 }}>🛎️</span>
+                      <span style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{s.name}</span>
                     </div>
-                    <button onClick={() => deleteService(s.id)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "5px 12px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حذف</button>
+                    <span style={{ fontSize: 12, color: COLORS.muted }}>⏱ {s.duration} دقيقة</span>
+                    <span style={{ fontSize: 12, color: s.price > 0 ? COLORS.accent : COLORS.muted, fontWeight: s.price > 0 ? 700 : 400 }}>
+                      {s.price > 0 ? `${s.price.toLocaleString()} د.ع` : "مجاناً"}
+                    </span>
+                    <button onClick={() => deleteService(s.id)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "5px 10px", color: "#ef4444", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حذف</button>
                   </div>
                 ))}
                 <button onClick={addDefaultServices} style={{ background: COLORS.surface, border: `1px dashed ${COLORS.border}`, borderRadius: 10, padding: "10px", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginTop: 8 }}>+ إضافة الخدمات الافتراضية</button>
