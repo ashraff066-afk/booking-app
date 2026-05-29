@@ -310,6 +310,16 @@ export default function AdminPage() {
                       <button onClick={() => toggleClientActive(c.id, c.is_active)} style={{ background: c.is_active ? "#ef444422" : "#00d4aa22", border: `1px solid ${c.is_active ? "#ef4444" : "#00d4aa"}`, borderRadius: 8, padding: "6px 12px", color: c.is_active ? "#ef4444" : "#00d4aa", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
                         {c.is_active ? "إيقاف" : "تفعيل ✓"}
                       </button>
+                      <button
+  onClick={() => {
+    const link = `${window.location.origin}/book/${c.slug}`;
+    const msg = `مرحبا ${c.business_name} 👋\n\nتم تفعيل حسابك على موعدي ✅\n\nرابط حجزك الخاص:\n${link}\n\nشارك الرابط مع زبائنك وابدأ تستقبل الحجوزات! 🚀`;
+    window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+  }}
+  style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 8, padding: "6px 12px", color: "#25d366", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}
+>
+  📱 إرسال الرابط
+</button>
                       {daysLeft !== null && daysLeft <= 7 && (
                         <button onClick={() => { const msg = `مرحبا ${c.business_name}، اشتراكك ينتهي ${daysLeft <= 0 ? "اليوم" : `خلال ${daysLeft} أيام`}، تواصل معنا للتجديد`; window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank"); }} style={{ background: "#f59e0b22", border: "1px solid #f59e0b", borderRadius: 8, padding: "6px 12px", color: "#f59e0b", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
                           📱 تذكير
