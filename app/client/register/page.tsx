@@ -61,6 +61,10 @@ export default function ClientRegister() {
         setLoading(false);
         return;
       }
+      // إشعار واتساب للأدمن
+const adminPhone = "9647739863056";
+const msg = `🔔 عميل جديد سجل على موعدي!\n\nاسم العمل: ${businessName}\nنوع العمل: ${sector === "clinic" ? "عيادة" : sector === "salon" ? "صالون" : "شاليه/فندق"}\nرقم الهاتف: ${phone}\nالإيميل: ${email}\n\nيرجى المراجعة والتفعيل 👆`;
+window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`, "_blank");
       window.location.href = "/client/dashboard";
     } else {
       setError("تأكد من إيميلك — راجع البريد الإلكتروني للتفعيل");
