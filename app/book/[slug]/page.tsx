@@ -54,6 +54,7 @@ export default function BookPage() {
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [customServices, setCustomServices] = useState<string[]>([]);
+  const [clientServices, setClientServices] = useState<any[]>([]);
 
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
@@ -68,11 +69,14 @@ export default function BookPage() {
     setSchedule(schData?.[0] || null);
 
     const { data: servicesData } = await supabase.from("services").select("*").eq("client_id", clientData.id).order("created_at", { ascending: true });
-    if (servicesData && servicesData.length > 0) {
-      setCustomServices(servicesData.map((s: any) => s.name));
-    } else {
-      setCustomServices(SECTOR_SERVICES[clientData.sector] || []);
-    }
+if (servicesData && servicesData.length > 0) {
+  setCustomServices(servicesData.map((s: any) => s.name));
+  setClientServices(servicesData);
+  setService(servicesData[0].name);
+} else {
+  setCustomServices(SECTOR_SERVICES[clientData.sector] || []);
+  setClientServices([]);
+}
     setPageLoading(false);
   };
 
@@ -190,12 +194,34 @@ export default function BookPage() {
             <input type="tel" placeholder="07xx xxx xxxx" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
           </div>
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>{sectorIcon} نوع الخدمة</label>
-            <select value={service} onChange={e => setService(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
-              {services.map(s => <option key={s}>{s}</option>)}
-            </select>
+<div style={{ marginBottom: 14 }}>
+  <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 8 }}>{sectorIcon} اختر الخدمة</label>
+  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    {customServices.length > 0 ? (
+      // خدمات العميل مع السعر والمدة
+      clientServices.map((s: any, i: number) => (
+        <div key={i} onClick={() => setService(s.name)} style={{ padding: "12px 16px", borderRadius: 10, background: service === s.name ? COLORS.accentDim : COLORS.surface, border: `2px solid ${service === s.name ? COLORS.accent : COLORS.border}`, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.2s" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {service === s.name && <span style={{ color: COLORS.accent }}>✓</span>}
+            <span style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{s.name}</span>
           </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: COLORS.muted }}>⏱ {s.duration} دقيقة</span>
+            {s.price > 0 && <span style={{ fontSize: 12, color: COLORS.accent, fontWeight: 700 }}>{s.price.toLocaleString()} د.ع</span>}
+          </div>
+        </div>
+      ))
+    ) : (
+      // خدمات افتراضية بدون سعر
+      services.map((s: string, i: number) => (
+        <div key={i} onClick={() => setService(s)} style={{ padding: "12px 16px", borderRadius: 10, background: service === s ? COLORS.accentDim : COLORS.surface, border: `2px solid ${service === s ? COLORS.accent : COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}>
+          {service === s && <span style={{ color: COLORS.accent }}>✓</span>}
+          <span style={{ fontWeight: 600, color: COLORS.white, fontSize: 14 }}>{s}</span>
+        </div>
+      ))
+    )}
+  </div>
+</div>
 
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>📅 التاريخ</label>
