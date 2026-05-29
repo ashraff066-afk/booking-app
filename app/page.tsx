@@ -15,9 +15,23 @@ const SECTORS_DATA = {
 };
 
 const PLANS = [
-  { name: "أساسي", price: "20,000", color: "#64748b", features: ["حجز غير محدود", "تذكير واتساب", "لوحة تحكم", "دعم فني"], ideal: "صالون صغير" },
-  { name: "احترافي", price: "50,000", color: "#00d4aa", features: ["كل مزايا الأساسي", "ملف عميل كامل", "تقارير شهرية", "أكثر من موظف"], ideal: "عيادة / صالون كبير", popular: true },
-  { name: "بريميوم", price: "100,000", color: "#f59e0b", features: ["كل مزايا الاحترافي", "حجز غرف متعدد", "دفع أونلاين", "API مخصص", "مدير حساب"], ideal: "فندق / شاليه" },
+  {
+    name: "موعدي", price: "35,000", color: "#00d4aa",
+    features: [
+      "حجز غير محدود",
+      "إشعار واتساب فوري",
+      "لوحة تحكم كاملة",
+      "جدول دوام مخصص",
+      "خدمات مخصصة",
+      "إحصائيات شهرية",
+      "تقييمات العملاء",
+      "أكواد خصم",
+      "دعم فني مجاني",
+    ],
+    ideal: "عيادات، صالونات، شاليهات",
+    popular: true,
+    hasDiscount: true,
+  },
 ];
 
 const FEATURES = [
@@ -437,35 +451,62 @@ export default function App() {
       )}
 
       {/* PLANS */}
-      {activeTab === "plans" && (
-        <div className="fade-in" style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <h2 style={{ fontSize: 36, fontWeight: 900, color: COLORS.white, marginBottom: 12 }}>أسعار واضحة بدون مفاجآت</h2>
-            <p style={{ color: COLORS.muted, fontSize: 16 }}>اشتراك شهري بالدينار العراقي</p>
+   {/* PLANS */}
+{activeTab === "plans" && (
+  <div className="fade-in" style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px" }}>
+    <div style={{ textAlign: "center", marginBottom: 48 }}>
+      <h2 style={{ fontSize: 36, fontWeight: 900, color: COLORS.white, marginBottom: 12 }}>سعر واحد — كل الميزات</h2>
+      <p style={{ color: COLORS.muted, fontSize: 16 }}>بدون باقات معقدة — كل شي بمكان واحد</p>
+    </div>
+
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <div style={{ maxWidth: 440, width: "100%" }}>
+        <div style={{ background: COLORS.card, border: `2px solid ${COLORS.accent}`, borderRadius: 24, padding: 32, position: "relative", boxShadow: `0 0 60px ${COLORS.accent}22` }}>
+          <div style={{ position: "absolute", top: -16, right: "50%", transform: "translateX(50%)", background: "linear-gradient(90deg,#00d4aa,#0070f3)", color: "#000", fontSize: 12, padding: "5px 20px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap" }}>⭐ الباقة الشاملة</div>
+
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.white, marginBottom: 8 }}>موعدي</div>
+            <div>
+              <span style={{ fontSize: 48, fontWeight: 900, color: COLORS.accent }}>35,000</span>
+              <span style={{ fontSize: 14, color: COLORS.muted }}> د.ع / شهر</span>
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>مثالي للعيادات، الصالونات، والشاليهات</div>
           </div>
-          <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
-            {PLANS.map((p, i) => (
-              <div key={i} className="hover-card" style={{ background: COLORS.card, border: `2px solid ${(p as any).popular ? p.color : COLORS.border}`, borderRadius: 20, padding: 28, position: "relative", boxShadow: (p as any).popular ? `0 0 40px ${p.color}33` : "none" }}>
-                {(p as any).popular && <div style={{ position: "absolute", top: -14, right: "50%", transform: "translateX(50%)", background: p.color, color: "#000", fontSize: 11, padding: "4px 16px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap" }}>⭐ الأكثر مبيعاً</div>}
-                <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.white, marginBottom: 8 }}>{p.name}</div>
-                <div style={{ marginBottom: 4 }}>
-                  <span style={{ fontSize: 36, fontWeight: 900, color: p.color }}>{p.price}</span>
-                  <span style={{ fontSize: 13, color: COLORS.muted }}> د.ع / شهر</span>
-                </div>
-                <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 20 }}>مثالي لـ {p.ideal}</div>
-                <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 16, marginBottom: 20 }}>
-                  {p.features.map((f, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, padding: "6px 0" }}>
-                      <span style={{ color: p.color }}>✓</span> {f}
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => openPlanModal(p)} style={{ width: "100%", padding: "13px", background: (p as any).popular ? "linear-gradient(90deg,#00d4aa,#0070f3)" : "transparent", border: (p as any).popular ? "none" : `1px solid ${p.color}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", color: (p as any).popular ? "#000" : p.color, fontFamily: "Tajawal,sans-serif" }}>اشترك الآن</button>
+
+          {/* كود الخصم */}
+          <div style={{ background: "#00d4aa11", border: "1px solid #00d4aa44", borderRadius: 12, padding: 14, marginBottom: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: COLORS.accent, fontWeight: 700, marginBottom: 4 }}>🎁 عرض العميل الجديد</div>
+            <div style={{ fontSize: 12, color: COLORS.muted }}>استخدم كود <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 14 }}>MAWIDI50</span> واحصل على خصم 50% للشهر الأول</div>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>= 17,500 د.ع فقط للشهر الأول!</div>
+          </div>
+
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 20, marginBottom: 24 }}>
+            {[
+              "حجز غير محدود",
+              "إشعار واتساب فوري",
+              "لوحة تحكم كاملة",
+              "جدول دوام مخصص",
+              "خدمات مخصصة",
+              "إحصائيات شهرية",
+              "تقييمات العملاء",
+              "رابط حجز خاص",
+              "دعم فني مجاني",
+            ].map((f, j) => (
+              <div key={j} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: COLORS.text, padding: "7px 0", borderBottom: j < 8 ? `1px solid ${COLORS.border}22` : "none" }}>
+                <span style={{ color: COLORS.accent, fontSize: 16 }}>✓</span> {f}
               </div>
             ))}
           </div>
+
+          <button onClick={() => setActiveTab("register")} style={{ width: "100%", padding: "15px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+            ابدأ الآن 🚀
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
+
 
     </div>
   );
