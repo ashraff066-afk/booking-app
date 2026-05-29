@@ -76,10 +76,22 @@ export default function AdminPage() {
     fetchBookings();
   };
 
-  const toggleClientActive = async (id: string, current: boolean) => {
-    await supabase.from("clients").update({ is_active: !current }).eq("id", id);
-    fetchClients();
-  };
+ const toggleClientActive = async (id: string, current: boolean) => {
+  await supabase.from("clients").update({ is_active: !current }).eq("id", id);
+  
+  // إشعار تلقائي للعميل لما يتفعّل
+  if (!current) {
+    const client = clients.find(c => c.id === id);
+    if (client?.phone && client?.slug) {
+      const link = `${window.location.origin}/book/${client.slug}`;
+      const loginLink = `${window.location.origin}/client`;
+      const msg = `مرحبا ${client.business_name} 👋\n\nتم تفعيل حسابك على موعدي ✅\n\nرابط حجزك الخاص:\n${link}\n\nللدخول للوحة التحكم:\n${loginLink}\n\nشارك رابط حجزك مع زبائنك وابدأ تستقبل الحجوزات! 🚀`;
+      window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+  }
+  
+  fetchClients();
+};
 
   const sendReminder = (b: any) => {
     const msg = `مرحبا ${b.name} 👋\nتذكير بموعدك 🗓️\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! ✨`;
