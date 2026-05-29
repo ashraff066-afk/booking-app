@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSector, setFilterSector] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [editingSubscription, setEditingSubscription] = useState<string | null>(null);
+  const [subscriptionDate, setSubscriptionDate] = useState("");
 
   useEffect(() => {
     if (authed) { fetchBookings(); fetchClients(); }
@@ -76,22 +78,35 @@ export default function AdminPage() {
     fetchBookings();
   };
 
- const toggleClientActive = async (id: string, current: boolean) => {
-  await supabase.from("clients").update({ is_active: !current }).eq("id", id);
-  
-  // إشعار تلقائي للعميل لما يتفعّل
-  if (!current) {
-    const client = clients.find(c => c.id === id);
-    if (client?.phone && client?.slug) {
-      const link = `${window.location.origin}/book/${client.slug}`;
-      const loginLink = `${window.location.origin}/client`;
-      const msg = `مرحبا ${client.business_name} 👋\n\nتم تفعيل حسابك على موعدي ✅\n\nرابط حجزك الخاص:\n${link}\n\nللدخول للوحة التحكم:\n${loginLink}\n\nشارك رابط حجزك مع زبائنك وابدأ تستقبل الحجوزات! 🚀`;
-      window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+  const toggleClientActive = async (id: string, current: boolean) => {
+    await supabase.from("clients").update({ is_active: !current }).eq("id", id);
+    if (!current) {
+      const client = clients.find(c => c.id === id);
+      if (client?.phone && client?.slug) {
+        const link = `${window.location.origin}/book/${client.slug}`;
+        const loginLink = `${window.location.origin}/client`;
+        const msg = `مرحبا ${client.business_name} 👋\n\nتم تفعيل حسابك على موعدي ✅\n\nرابط حجزك الخاص:\n${link}\n\nللدخول للوحة التحكم:\n${loginLink}\n\nشارك رابط حجزك مع زبائنك وابدأ تستقبل الحجوزات! 🚀`;
+        window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+      }
     }
-  }
-  
-  fetchClients();
-};
+    fetchClients();
+  };
+
+  const saveSubscription = async (id: string) => {
+    if (!subscriptionDate) return;
+    await supabase.from("clients").update({ subscription_end: subscriptionDate }).eq("id", id);
+    setEditingSubscription(null);
+    setSubscriptionDate("");
+    fetchClients();
+  };
+
+  const setQuickSubscription = async (id: string, days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const dateStr = date.toISOString().split("T")[0];
+    await supabase.from("clients").update({ subscription_end: dateStr }).eq("id", id);
+    fetchClients();
+  };
 
   const sendReminder = (b: any) => {
     const msg = `مرحبا ${b.name} 👋\nتذكير بموعدك 🗓️\nالخدمة: ${b.service}\nالموعد: ${b.time}\nنتطلع لاستقبالك! ✨`;
@@ -145,7 +160,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* تنبيه العملاء اللي اشتراكهم ينتهي */}
         {expiringClients.length > 0 && (
           <div style={{ background: "#f59e0b22", border: "1px solid #f59e0b", borderRadius: 12, padding: "14px 20px", marginBottom: 24 }}>
             <div style={{ fontWeight: 700, color: "#f59e0b", marginBottom: 8 }}>⚠️ {expiringClients.length} عميل اشتراكه ينتهي قريباً</div>
@@ -297,47 +311,68 @@ export default function AdminPage() {
               clients.map((c, i) => {
                 const daysLeft = getSubscriptionDaysLeft(c.subscription_end);
                 return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: i < clients.length - 1 ? `1px solid ${COLORS.border}` : "none", background: i % 2 === 0 ? "transparent" : "#ffffff04" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: COLORS.white }}>{c.business_name}</span>
+                  <div key={i} style={{ padding: "16px 24px", borderBottom: i < clients.length - 1 ? `1px solid ${COLORS.border}` : "none", background: i % 2 === 0 ? "transparent" : "#ffffff04" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, alignItems: "center", marginBottom: editingSubscription === c.id ? 12 : 0 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: COLORS.white }}>{c.business_name}</span>
+                          {daysLeft !== null && daysLeft <= 7 && (
+                            <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: daysLeft <= 3 ? "#ef444422" : "#f59e0b22", color: daysLeft <= 3 ? "#ef4444" : "#f59e0b", border: `1px solid ${daysLeft <= 3 ? "#ef4444" : "#f59e0b"}` }}>
+                              {daysLeft <= 0 ? "🚨 منتهي" : `⚠️ ${daysLeft} أيام`}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: COLORS.muted }}>{c.phone}</div>
+                        {c.subscription_end && <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>ينتهي: {new Date(c.subscription_end).toLocaleDateString("ar-IQ")}</div>}
+                      </div>
+                      <div style={{ color: COLORS.text, fontSize: 14 }}>
+                        {c.sector === "clinic" ? "🏥 عيادة" : c.sector === "salon" ? "✂️ صالون" : "🏨 شاليه"}
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 600, background: c.is_active ? "#00d4aa22" : "#ef444422", color: c.is_active ? "#00d4aa" : "#ef4444", border: `1px solid ${c.is_active ? "#00d4aa44" : "#ef444444"}` }}>
+                          {c.is_active ? "✅ مفعّل" : "⏳ انتظار"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button onClick={() => toggleClientActive(c.id, c.is_active)} style={{ background: c.is_active ? "#ef444422" : "#00d4aa22", border: `1px solid ${c.is_active ? "#ef4444" : "#00d4aa"}`, borderRadius: 8, padding: "5px 10px", color: c.is_active ? "#ef4444" : "#00d4aa", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
+                          {c.is_active ? "إيقاف" : "تفعيل ✓"}
+                        </button>
+                        <button onClick={() => { const link = `${window.location.origin}/book/${c.slug}`; const msg = `مرحبا ${c.business_name} 👋\n\nرابط حجزك:\n${link}\n\nشارك الرابط مع زبائنك! 🚀`; window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank"); }} style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 8, padding: "5px 10px", color: "#25d366", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>📱 رابط</button>
+                        <button onClick={() => { setEditingSubscription(editingSubscription === c.id ? null : c.id); setSubscriptionDate(c.subscription_end?.split("T")[0] || ""); }} style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}`, borderRadius: 8, padding: "5px 10px", color: COLORS.accent, fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>📅 اشتراك</button>
                         {daysLeft !== null && daysLeft <= 7 && (
-                          <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: daysLeft <= 3 ? "#ef444422" : "#f59e0b22", color: daysLeft <= 3 ? "#ef4444" : "#f59e0b", border: `1px solid ${daysLeft <= 3 ? "#ef4444" : "#f59e0b"}` }}>
-                            {daysLeft <= 0 ? "🚨 منتهي" : `⚠️ ${daysLeft} أيام`}
-                          </span>
+                          <button onClick={() => { const msg = `مرحبا ${c.business_name}، اشتراكك ينتهي ${daysLeft <= 0 ? "اليوم" : `خلال ${daysLeft} أيام`}، تواصل معنا للتجديد`; window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank"); }} style={{ background: "#f59e0b22", border: "1px solid #f59e0b", borderRadius: 8, padding: "5px 10px", color: "#f59e0b", fontSize: 11, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>⚠️ تذكير</button>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: COLORS.muted }}>{c.phone}</div>
-                      {c.subscription_end && <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>ينتهي: {new Date(c.subscription_end).toLocaleDateString("ar-IQ")}</div>}
                     </div>
-                    <div style={{ color: COLORS.text, fontSize: 14 }}>
-                      {c.sector === "clinic" ? "🏥 عيادة" : c.sector === "salon" ? "✂️ صالون" : "🏨 شاليه"}
-                    </div>
-                    <div>
-                      <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 600, background: c.is_active ? "#00d4aa22" : "#ef444422", color: c.is_active ? "#00d4aa" : "#ef4444", border: `1px solid ${c.is_active ? "#00d4aa44" : "#ef444444"}` }}>
-                        {c.is_active ? "✅ مفعّل" : "⏳ انتظار الدفع"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => toggleClientActive(c.id, c.is_active)} style={{ background: c.is_active ? "#ef444422" : "#00d4aa22", border: `1px solid ${c.is_active ? "#ef4444" : "#00d4aa"}`, borderRadius: 8, padding: "6px 12px", color: c.is_active ? "#ef4444" : "#00d4aa", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
-                        {c.is_active ? "إيقاف" : "تفعيل ✓"}
-                      </button>
-                      <button
-  onClick={() => {
-    const link = `${window.location.origin}/book/${c.slug}`;
-    const msg = `مرحبا ${c.business_name} 👋\n\nتم تفعيل حسابك على موعدي ✅\n\nرابط حجزك الخاص:\n${link}\n\nشارك الرابط مع زبائنك وابدأ تستقبل الحجوزات! 🚀`;
-    window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
-  }}
-  style={{ background: "#25d36622", border: "1px solid #25d366", borderRadius: 8, padding: "6px 12px", color: "#25d366", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}
->
-  📱 إرسال الرابط
-</button>
-                      {daysLeft !== null && daysLeft <= 7 && (
-                        <button onClick={() => { const msg = `مرحبا ${c.business_name}، اشتراكك ينتهي ${daysLeft <= 0 ? "اليوم" : `خلال ${daysLeft} أيام`}، تواصل معنا للتجديد`; window.open(`https://wa.me/${c.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank"); }} style={{ background: "#f59e0b22", border: "1px solid #f59e0b", borderRadius: 8, padding: "6px 12px", color: "#f59e0b", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
-                          📱 تذكير
-                        </button>
-                      )}
-                    </div>
+
+                    {/* تحديد الاشتراك */}
+                    {editingSubscription === c.id && (
+                      <div style={{ background: COLORS.surface, borderRadius: 10, padding: 14, border: `1px solid ${COLORS.border}` }}>
+                        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 10, fontWeight: 600 }}>📅 تحديد تاريخ انتهاء الاشتراك</div>
+                        
+                        {/* أزرار سريعة */}
+                        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                          {[
+                            { label: "14 يوم (تجربة)", days: 14 },
+                            { label: "شهر", days: 30 },
+                            { label: "3 أشهر", days: 90 },
+                            { label: "6 أشهر", days: 180 },
+                            { label: "سنة", days: 365 },
+                          ].map(opt => (
+                            <button key={opt.days} onClick={() => { setQuickSubscription(c.id, opt.days); setEditingSubscription(null); }} style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "5px 12px", color: COLORS.text, fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif", fontWeight: 600 }}>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* تاريخ مخصص */}
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input type="date" value={subscriptionDate} onChange={e => setSubscriptionDate(e.target.value)} style={{ flex: 1, padding: "8px 12px", borderRadius: 8, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+                          <button onClick={() => saveSubscription(c.id)} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 8, padding: "8px 16px", color: "#000", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>حفظ</button>
+                          <button onClick={() => setEditingSubscription(null)} style={{ background: "#ef444422", border: "1px solid #ef4444", borderRadius: 8, padding: "8px 12px", color: "#ef4444", fontSize: 13, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>إلغاء</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })
