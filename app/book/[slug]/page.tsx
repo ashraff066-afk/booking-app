@@ -87,6 +87,7 @@ export default function BookPage() {
   }, [bookingDate, client]);
 
   const handleBooking = async () => {
+    if (phone.replace(/\s/g, '').length !== 11) { alert("رقم الهاتف يجب أن يكون 11 رقم"); return; }
     if (!name || !phone || !bookingDate || !selectedTime) { alert("يرجى إدخال جميع البيانات"); return; }
     setLoading(true);
     const bNumber = "HJ-" + Date.now().toString().slice(-6);
