@@ -140,7 +140,10 @@ if (servicesData && servicesData.length > 0) {
   );
 
   const services = customServices.length > 0 ? customServices : (SECTOR_SERVICES[client.sector] || []);
-  const slots = bookingDate && schedule ? generateSlots(schedule.start_time || "08:00", schedule.end_time || "17:00", SLOT_DURATION[client.sector] || 30) : [];
+  const duration = SLOT_DURATION[client.sector] || 30;
+const morningSlots = bookingDate && schedule?.morning_enabled ? generateSlots(schedule.morning_start || "08:00", schedule.morning_end || "12:00", duration) : [];
+const eveningSlots = bookingDate && schedule?.evening_enabled ? generateSlots(schedule.evening_start || "16:00", schedule.evening_end || "21:00", duration) : [];
+const slots = [...morningSlots, ...eveningSlots];
   const sectorIcon = client.sector === "clinic" ? "🏥" : client.sector === "salon" ? "✂️" : "🏨";
 
   if (bookingSuccess) return (
@@ -182,7 +185,8 @@ if (servicesData && servicesData.length > 0) {
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 800, color: COLORS.white }}>{client.business_name}</h1>
           {client.address && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>📍 {client.address}</p>}
-          {schedule && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>🕐 {schedule.start_time} — {schedule.end_time}</p>}
+{schedule?.morning_enabled && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>🌅 {schedule.morning_start} — {schedule.morning_end}</p>}
+{schedule?.evening_enabled && <p style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>🌙 {schedule.evening_start} — {schedule.evening_end}</p>}
         </div>
       </div>
 
