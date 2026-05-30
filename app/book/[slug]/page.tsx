@@ -99,6 +99,20 @@ if (servicesData && servicesData.length > 0) {
   const handleBooking = async () => {
     if (phone.replace(/\s/g, '').length !== 11) { alert("رقم الهاتف يجب أن يكون 11 رقم"); return; }
     if (!name || !phone || !bookingDate || !selectedTime) { alert("يرجى إدخال جميع البيانات"); return; }
+    const { data: existing } = await supabase
+  .from("bookings")
+  .select("id")
+  .eq("phone", phone)
+  .eq("booking_date", bookingDate)
+  .eq("client_id", client.id)
+  .neq("status", "cancelled")
+  .limit(1);
+
+if (existing && existing.length > 0) {
+  alert("عندك حجز مسجل بهذا الرقم بنفس اليوم!");
+  setLoading(false);
+  return;
+}
     setLoading(true);
     const bNumber = "HJ-" + Date.now().toString().slice(-6);
     const { error } = await supabase.from("bookings").insert([{
