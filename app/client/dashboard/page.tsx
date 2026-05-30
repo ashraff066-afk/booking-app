@@ -475,6 +475,25 @@ setEveningEnd(scheduleData.evening_end || "21:00");
         {activeTab === "settings" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
             <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>⚙️ الإعدادات</h3>
+            {/* رفع صورة العمل */}
+<div style={{ marginBottom: 20 }}>
+  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>📸 صورة العمل</label>
+  {client?.image_url && (
+    <img src={client.image_url} alt="صورة العمل" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 12, marginBottom: 10, border: `1px solid ${COLORS.border}` }} />
+  )}
+  <input type="file" accept="image/*" onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !client) return;
+    const ext = file.name.split(".").pop();
+    const path = `${client.id}.${ext}`;
+    const { error } = await supabase.storage.from("business-images").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("business-images").getPublicUrl(path);
+      await supabase.from("clients").update({ image_url: data.publicUrl }).eq("id", client.id);
+      checkUser();
+    }
+  }} style={{ width: "100%", padding: "10px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 13, fontFamily: "Tajawal,sans-serif", cursor: "pointer" }} />
+</div>
             <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 20 }}>عدّل معلومات مشروعك</p>
 
             {[
