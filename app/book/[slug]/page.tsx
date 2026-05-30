@@ -65,6 +65,10 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
   const loadClient = async () => {
+    if (typeof window !== "undefined" && !window.location.search.includes("book=1")) {
+  window.location.href = `/book/${slug}/profile`;
+  return;
+}
     const { data, error } = await supabase.from("clients").select("*").eq("slug", slug).limit(1);
     if (error || !data || data.length === 0) { setNotFound(true); setPageLoading(false); return; }
     const clientData = data[0];
