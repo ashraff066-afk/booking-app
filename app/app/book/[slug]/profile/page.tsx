@@ -28,6 +28,10 @@ export default function ProfilePage() {
   useEffect(() => { if (slug) loadData(); }, [slug]);
 
   const loadData = async () => {
+    if (typeof window !== "undefined" && !window.location.search.includes("book=1")) {
+  window.location.href = `/book/${slug}/profile`;
+  return;
+}
     const { data, error } = await supabase.from("clients").select("*").eq("slug", slug).limit(1);
     if (error || !data || data.length === 0) { setNotFound(true); setLoading(false); return; }
     const clientData = data[0];

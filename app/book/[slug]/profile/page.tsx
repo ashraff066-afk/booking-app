@@ -152,7 +152,7 @@ export default function ProfilePage() {
       {/* زر الحجز ثابت */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "16px", background: "#0a0e1acc", backdropFilter: "blur(10px)", borderTop: `1px solid ${COLORS.border}` }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <button onClick={() => window.location.href = `/book/${slug}`} style={{ width: "100%", padding: "15px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+          <button onClick={() => window.location.href = `/book/${slug}?book=1`} style={{ width: "100%", padding: "15px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
             📅 احجز موعدك الآن
           </button>
         </div>
