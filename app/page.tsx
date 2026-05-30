@@ -113,15 +113,18 @@ export default function App() {
 
     if (data.user) {
       const slug = generateSlug(regName);
-      await supabase.from("clients").insert([{
-        user_id: data.user.id,
-        business_name: regName,
-        sector: regSector,
-        phone: regPhone,
-        is_active: false,
-        slug,
-      }]);
+ const trialEnd = new Date();
+trialEnd.setDate(trialEnd.getDate() + 14);
 
+await supabase.from("clients").insert([{
+  user_id: data.user.id,
+  business_name: regName,
+  sector: regSector,
+  phone: regPhone,
+  is_active: false,
+  slug,
+  subscription_end: trialEnd.toISOString().split("T")[0],
+}]);
       // إشعار واتساب للأدمن
       const sector = SECTORS_DATA[regSector as keyof typeof SECTORS_DATA];
       const paymentLabel = regPayment === "whatsapp" ? "💬 واتساب" : "💳 تحويل بنكي";
