@@ -37,6 +37,12 @@ export default function BookPage() {
   const slug = params?.slug as string;
   const [client, setClient] = useState<any>(null);
   const [schedule, setSchedule] = useState<any>(null);
+  const [morningEnabled, setMorningEnabled] = useState(true);
+const [morningStart, setMorningStart] = useState("08:00");
+const [morningEnd, setMorningEnd] = useState("12:00");
+const [eveningEnabled, setEveningEnabled] = useState(false);
+const [eveningStart, setEveningStart] = useState("16:00");
+const [eveningEnd, setEveningEnd] = useState("21:00");
   const [notFound, setNotFound] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [name, setName] = useState("");
