@@ -36,6 +36,12 @@ export default function ClientDashboard() {
   const [endTime, setEndTime] = useState("17:00");
   const [maxPerDay, setMaxPerDay] = useState(20);
   const [scheduleId, setScheduleId] = useState<string | null>(null);
+  const [morningEnabled, setMorningEnabled] = useState(true);
+const [morningStart, setMorningStart] = useState("08:00");
+const [morningEnd, setMorningEnd] = useState("12:00");
+const [eveningEnabled, setEveningEnabled] = useState(false);
+const [eveningStart, setEveningStart] = useState("16:00");
+const [eveningEnd, setEveningEnd] = useState("21:00");
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
 
@@ -78,6 +84,12 @@ export default function ClientDashboard() {
       setStartTime(scheduleData.start_time || "08:00");
       setEndTime(scheduleData.end_time || "17:00");
       setMaxPerDay(scheduleData.max_bookings_per_day || 20);
+      setMorningEnabled(scheduleData.morning_enabled ?? true);
+setMorningStart(scheduleData.morning_start || "08:00");
+setMorningEnd(scheduleData.morning_end || "12:00");
+setEveningEnabled(scheduleData.evening_enabled ?? false);
+setEveningStart(scheduleData.evening_start || "16:00");
+setEveningEnd(scheduleData.evening_end || "21:00");
     }
 
     const { data: servicesData } = await supabase.from("services").select("*").eq("client_id", clientData.id).order("created_at", { ascending: true });
@@ -95,9 +107,23 @@ export default function ClientDashboard() {
   const toggleDay = (day: string) => setWorkDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
 
   const saveSchedule = async () => {
+   
     if (!client) return;
     setSavingSchedule(true);
-    const scheduleData = { client_id: client.id, sector: client.sector, work_days: workDays, start_time: startTime, end_time: endTime, max_bookings_per_day: maxPerDay };
+   const scheduleData = { 
+  client_id: client.id, 
+  sector: client.sector, 
+  work_days: workDays, 
+  start_time: morningStart, 
+  end_time: morningEnd, 
+  morning_enabled: morningEnabled,
+  morning_start: morningStart,
+  morning_end: morningEnd,
+  evening_enabled: eveningEnabled,
+  evening_start: eveningStart,
+  evening_end: eveningEnd,
+  max_bookings_per_day: maxPerDay 
+};
     if (scheduleId) {
       await supabase.from("schedules").update(scheduleData).eq("id", scheduleId);
     } else {
