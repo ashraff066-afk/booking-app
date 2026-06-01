@@ -78,6 +78,11 @@ export default function ProfilePage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ background: COLORS.accentDim, border: `1px solid ${COLORS.accent}44`, borderRadius: 20, padding: "4px 14px", fontSize: 13, color: COLORS.accent, fontWeight: 700 }}>{sectorIcon} {sectorLabel}</span>
             {client.address && <span style={{ fontSize: 13, color: COLORS.muted }}>📍 {client.address}</span>}
+            {client?.location_url && (
+  <a href={client.location_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#0070f322", border: "1px solid #0070f344", borderRadius: 20, padding: "4px 14px", fontSize: 13, color: "#0070f3", fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
+    🗺️ شوف الموقع على الخريطة
+  </a>
+)}
             {avgRating && <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>⭐ {avgRating} ({reviews.length} تقييم)</span>}
           </div>
         </div>

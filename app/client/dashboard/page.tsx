@@ -49,6 +49,7 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
   const [settingsPhone, setSettingsPhone] = useState("");
   const [settingsSector, setSettingsSector] = useState("clinic");
   const [settingsAddress, setSettingsAddress] = useState("");
+  const [settingsLocation, setSettingsLocation] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -70,7 +71,7 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
     setSettingsPhone(clientData.phone || "");
     setSettingsSector(clientData.sector || "clinic");
     setSettingsAddress(clientData.address || "");
-
+    setSettingsLocation(clientData.location_url || "");
     const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
     setBookings(bookingsData || []);
 
@@ -138,7 +139,7 @@ setEveningEnd(scheduleData.evening_end || "21:00");
   const saveSettings = async () => {
     if (!client) return;
     setSavingSettings(true);
-    await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector, address: settingsAddress }).eq("id", client.id);
+await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector, address: settingsAddress, location_url: settingsLocation }).eq("id", client.id);
     setSavingSettings(false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 3000);
@@ -500,6 +501,7 @@ setEveningEnd(scheduleData.evening_end || "21:00");
               { label: "اسم العمل", value: settingsName, setter: setSettingsName, type: "text", placeholder: "مثال: عيادة د. أحمد" },
               { label: "رقم الواتساب", value: settingsPhone, setter: setSettingsPhone, type: "tel", placeholder: "07xx xxx xxxx" },
               { label: "📍 العنوان", value: settingsAddress, setter: setSettingsAddress, type: "text", placeholder: "مثال: شارع فلسطين" },
+              { label: "🗺️ رابط الموقع (Google Maps)", value: settingsLocation, setter: setSettingsLocation, type: "text", placeholder: "https://maps.google.com/..." },
             ].map((f, i) => (
               <div key={i} style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{f.label}</label>
