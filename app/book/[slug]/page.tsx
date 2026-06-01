@@ -258,9 +258,13 @@ const slots = [...morningSlots, ...eveningSlots];
 
           {bookingDate && slots.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10 }}>
-                🕐 اختر الوقت &nbsp;<span style={{ fontSize: 11 }}>🟢 متاح &nbsp; 🔴 محجوز</span>
-              </label>
+<label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 10 }}>
+  🕐 اختر الوقت &nbsp;
+  <span style={{ fontSize: 11 }}>🟢 متاح &nbsp; 🔴 محجوز</span>
+  <span style={{ float: "left", fontSize: 12, color: COLORS.accent, fontWeight: 700 }}>
+    {slots.filter(s => !bookedSlots.includes(s)).length} متاح من {slots.length}
+  </span>
+</label>
               <div className="slots-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
                 {slots.map(slot => {
                   const isBooked = bookedSlots.includes(slot);
