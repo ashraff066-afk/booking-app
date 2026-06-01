@@ -32,7 +32,7 @@ export default function ExplorePage() {
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     setClients(data || []);
-const uniqueCities: string[] = [...new Set((data || []).map((c: any) => c.city).filter(Boolean))] as string[];
+const uniqueCities: string[] = Array.from(new Set((data || []).map((c: any) => c.city).filter(Boolean)));
     setLoading(false);
   };
 
