@@ -224,8 +224,8 @@ await supabase.from("clients").insert([{
           <span style={{ fontSize: 22, fontWeight: 900, color: COLORS.white }}>موعدي</span>
         </div>
         <div className="desktop-nav" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {[{ id: "landing", label: "الرئيسية" }, { id: "register", label: "ابدأ الآن" }, { id: "plans", label: "الأسعار" }].map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal,sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.muted }}>{t.label}</button>
+{[{ id: "landing", label: "الرئيسية" }, { id: "register", label: "ابدأ الآن" }, { id: "plans", label: "الأسعار" }, { id: "explore", label: "استكشف" }].map(t => (
+<button key={t.id} onClick={() => t.id === "explore" ? window.location.href = "/explore" : setActiveTab(t.id)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14, fontFamily: "Tajawal,sans-serif", fontWeight: activeTab === t.id ? 700 : 400, background: activeTab === t.id ? COLORS.accentDim : "transparent", color: activeTab === t.id ? COLORS.accent : COLORS.muted }}>{t.label}</button>
           ))}
           <button onClick={() => setActiveTab("register")} style={{ background: "linear-gradient(90deg,#00d4aa,#0070f3)", padding: "9px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, color: "#000", border: "none", cursor: "pointer", fontFamily: "Tajawal,sans-serif", marginRight: 8 }}>ابدأ الآن</button>
         </div>
