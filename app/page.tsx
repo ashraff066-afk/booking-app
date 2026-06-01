@@ -258,6 +258,12 @@ await supabase.from("clients").insert([{
               <button onClick={() => setActiveTab("plans")} style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: "16px 36px", fontSize: 17, fontWeight: 600, cursor: "pointer", color: COLORS.text, fontFamily: "Tajawal,sans-serif" }}>شوف الأسعار</button>
             </div>
             <p style={{ color: COLORS.muted, fontSize: 13 }}>✅ إعداد في 5 دقائق · ✅ دعم فني مجاني · ✅ بالدينار العراقي</p>
+            <div style={{ marginTop: 24, padding: "20px 24px", background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, textAlign: "center" }}>
+  <p style={{ color: COLORS.muted, fontSize: 14, marginBottom: 12 }}>🔍 تبحث عن عيادة أو صالون؟</p>
+  <button onClick={() => window.location.href = "/explore"} style={{ background: "transparent", border: `1px solid ${COLORS.accent}`, borderRadius: 12, padding: "12px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", color: COLORS.accent, fontFamily: "Tajawal,sans-serif" }}>
+    استكشف الخدمات القريبة منك 🗺️
+  </button>
+</div>
           </section>
 
           <section style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 60px" }}>
