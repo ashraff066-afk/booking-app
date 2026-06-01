@@ -50,6 +50,8 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
   const [settingsSector, setSettingsSector] = useState("clinic");
   const [settingsAddress, setSettingsAddress] = useState("");
   const [settingsLocation, setSettingsLocation] = useState("");
+  const [settingsSpecialty, setSettingsSpecialty] = useState("");
+const [settingsCity, setSettingsCity] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -71,6 +73,8 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
     setSettingsPhone(clientData.phone || "");
     setSettingsSector(clientData.sector || "clinic");
     setSettingsAddress(clientData.address || "");
+    setSettingsSpecialty(clientData.specialty || "");
+setSettingsCity(clientData.city || "");
     setSettingsLocation(clientData.location_url || "");
     const { data: bookingsData } = await supabase.from("bookings").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
     setBookings(bookingsData || []);
@@ -139,7 +143,15 @@ setEveningEnd(scheduleData.evening_end || "21:00");
   const saveSettings = async () => {
     if (!client) return;
     setSavingSettings(true);
-await supabase.from("clients").update({ business_name: settingsName, phone: settingsPhone, sector: settingsSector, address: settingsAddress, location_url: settingsLocation }).eq("id", client.id);
+await supabase.from("clients").update({ 
+  business_name: settingsName, 
+  phone: settingsPhone, 
+  sector: settingsSector, 
+  address: settingsAddress, 
+  location_url: settingsLocation,
+  specialty: settingsSpecialty,
+  city: settingsCity,
+}).eq("id", client.id);
     setSavingSettings(false);
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 3000);
@@ -502,6 +514,7 @@ await supabase.from("clients").update({ business_name: settingsName, phone: sett
               { label: "رقم الواتساب", value: settingsPhone, setter: setSettingsPhone, type: "tel", placeholder: "07xx xxx xxxx" },
               { label: "📍 العنوان", value: settingsAddress, setter: setSettingsAddress, type: "text", placeholder: "مثال: شارع فلسطين" },
               { label: "🗺️ رابط الموقع (Google Maps)", value: settingsLocation, setter: setSettingsLocation, type: "text", placeholder: "https://maps.google.com/..." },
+              { label: "🏙️ المدينة", value: settingsCity, setter: setSettingsCity, type: "text", placeholder: "مثال: البصرة" },
             ].map((f, i) => (
               <div key={i} style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{f.label}</label>
@@ -511,6 +524,10 @@ await supabase.from("clients").update({ business_name: settingsName, phone: sett
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>نوع العمل</label>
+              <div style={{ marginBottom: 16 }}>
+  <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>🎯 التخصص</label>
+  <input type="text" value={settingsSpecialty} onChange={e => setSettingsSpecialty(e.target.value)} placeholder="مثال: طب أسنان، قص شعر رجالي..." style={{ width: "100%", padding: "12px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+</div>
               <select value={settingsSector} onChange={e => setSettingsSector(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }}>
                 <option value="clinic">🏥 عيادة</option>
                 <option value="salon">✂️ صالون</option>
