@@ -479,6 +479,9 @@ const saveSettings = async () => {
       <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
     </div>
   </div>
+  <button onClick={() => { setMorningEnabled(false); setMorningStart(""); setMorningEnd(""); }} style={{ marginTop: 10, background: "#ef444411", border: "1px solid #ef444444", borderRadius: 8, padding: "6px 14px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
+    🗑️ حذف فترة الصباح
+  </button>
 </div>
 
 {/* فترة المساء */}
