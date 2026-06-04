@@ -463,16 +463,45 @@ const saveSettings = async () => {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6, fontWeight: 600 }}>🕐 البداية</label>
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 6, fontWeight: 600 }}>🕐 النهاية</label>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
-              </div>
-            </div>
+           {/* فترة الصباح */}
+<div style={{ background: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${COLORS.border}` }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+    <span style={{ fontSize: 18 }}>🌅</span>
+    <span style={{ fontWeight: 700, color: COLORS.white, fontSize: 14 }}>فترة الصباح</span>
+  </div>
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div>
+      <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>من</label>
+      <input type="time" value={morningStart} onChange={e => setMorningStart(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+    </div>
+    <div>
+      <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>إلى</label>
+      <input type="time" value={morningEnd} onChange={e => setMorningEnd(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+    </div>
+  </div>
+</div>
+
+{/* فترة المساء */}
+<div style={{ background: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 20, border: `1px solid ${COLORS.border}` }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+    <span style={{ fontSize: 18 }}>🌙</span>
+    <span style={{ fontWeight: 700, color: COLORS.white, fontSize: 14 }}>فترة المساء</span>
+    <span style={{ fontSize: 11, color: COLORS.muted }}>(اختياري)</span>
+  </div>
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div>
+      <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>من</label>
+      <input type="time" value={eveningStart} onChange={e => { setEveningStart(e.target.value); setEveningEnabled(true); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+    </div>
+    <div>
+      <label style={{ display: "block", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>إلى</label>
+      <input type="time" value={eveningEnd} onChange={e => { setEveningEnd(e.target.value); setEveningEnabled(true); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
+    </div>
+  </div>
+  <button onClick={() => { setEveningEnabled(false); setEveningStart(""); setEveningEnd(""); }} style={{ marginTop: 10, background: "#ef444411", border: "1px solid #ef444444", borderRadius: 8, padding: "6px 14px", color: "#ef4444", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>
+    🗑️ حذف فترة المساء
+  </button>
+</div>
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", fontSize: 12, color: COLORS.muted, marginBottom: 8, fontWeight: 600 }}>👥 أقصى حجوزات: <span style={{ color: COLORS.accent, fontSize: 15 }}>{maxPerDay}</span></label>
