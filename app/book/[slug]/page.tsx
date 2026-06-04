@@ -61,6 +61,10 @@ const [eveningEnd, setEveningEnd] = useState("21:00");
   const [reviewLoading, setReviewLoading] = useState(false);
   const [customServices, setCustomServices] = useState<string[]>([]);
   const [clientServices, setClientServices] = useState<any[]>([]);
+  const [savedName, setSavedName] = useState("");
+const [savedPhone, setSavedPhone] = useState("");
+const [savedDate, setSavedDate] = useState("");
+const [savedTime, setSavedTime] = useState("");
 
   useEffect(() => { if (slug) loadClient(); }, [slug]);
 
@@ -130,12 +134,15 @@ if (existing && existing.length > 0) {
     }]);
     setLoading(false);
     if (!error) {
-      const msg = `🔔 حجز جديد!\nرقم الحجز: ${bNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالموعد: ${bookingDate} ${selectedTime}`;
-      window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
-      setBookingNumber(bNumber);
-      setBookingSuccess(true);
-      setName(""); setPhone(""); setBookingDate(""); setSelectedTime("");
-      setRating(0); setComment(""); setReviewSubmitted(false);
+  setSavedName(name);
+setSavedPhone(phone);
+setSavedDate(bookingDate);
+setSavedTime(selectedTime);
+setBookingNumber(bNumber);
+setBookingSuccess(true);
+setName(""); setPhone(""); setBookingDate(""); setSelectedTime("");
+setRating(0); setComment(""); setReviewSubmitted(false);
+
     } else { alert("حدث خطأ، حاول مجدداً"); }
   };
 
@@ -200,7 +207,22 @@ const slots = [...morningSlots, ...eveningSlots];
         ) : (
           <div style={{ background: "#00d4aa22", border: "1px solid #00d4aa", borderRadius: 14, padding: 14, marginBottom: 16, color: COLORS.accent, fontWeight: 700 }}>✅ شكراً على تقييمك!</div>
         )}
-        <button onClick={() => setBookingSuccess(false)} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>حجز جديد</button>
+<button onClick={() => {
+  const msg = `🔔 حجز جديد!\nرقم الحجز: ${bookingNumber}\nالاسم: ${name}\nالهاتف: ${phone}\nالخدمة: ${service}\nالموعد: ${bookingDate} ${selectedTime}`;
+  window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+}} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg,#25d366,#128c7e)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#fff", fontFamily: "Tajawal,sans-serif", marginBottom: 10 }}>
+  💬 تواصل عبر واتساب
+</button>
+<button onClick={() => {
+  const msg = `🔔 حجز جديد!\nرقم الحجز: ${bookingNumber}\nالاسم: ${savedName}\nالهاتف: ${savedPhone}\nالخدمة: ${service}\nالموعد: ${savedDate} ${savedTime}`;
+  window.open(`https://wa.me/${client.phone?.replace(/^0/,"964")}?text=${encodeURIComponent(msg)}`, "_blank");
+}} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg,#25d366,#128c7e)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#fff", fontFamily: "Tajawal,sans-serif", marginBottom: 10 }}>
+  💬 تواصل عبر واتساب
+</button>
+<button onClick={() => setBookingSuccess(false)} style={{ width: "100%", padding: "13px", background: "linear-gradient(90deg,#00d4aa,#0070f3)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer", color: "#000", fontFamily: "Tajawal,sans-serif" }}>
+  🔄 حجز جديد
+
+</button>
       </div>
     </div>
   );
