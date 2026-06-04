@@ -121,10 +121,10 @@ setEveningEnd(scheduleData.evening_end || "21:00");
   work_days: workDays, 
   start_time: morningStart, 
   end_time: morningEnd, 
-  morning_enabled: morningEnabled,
+morning_enabled: morningStart !== "" && morningEnd !== "",
   morning_start: morningStart,
   morning_end: morningEnd,
-  evening_enabled: eveningEnabled,
+evening_enabled: eveningStart !== "" && eveningEnd !== "",
   evening_start: eveningStart,
   evening_end: eveningEnd,
   max_bookings_per_day: maxPerDay 
