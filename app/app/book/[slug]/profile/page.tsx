@@ -43,7 +43,7 @@ export default function ProfilePage() {
     const { data: servicesData } = await supabase.from("services").select("*").eq("client_id", clientData.id).order("created_at", { ascending: true });
     setServices(servicesData || []);
 
-    const { data: reviewsData } = await supabase.from("reviews").select("*").limit(10);
+const { data: reviewsData } = await supabase.from("reviews").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false }).limit(10);
     setReviews(reviewsData || []);
 
     setLoading(false);

@@ -139,13 +139,18 @@ if (existing && existing.length > 0) {
     } else { alert("حدث خطأ، حاول مجدداً"); }
   };
 
-  const handleReview = async () => {
-    if (rating === 0) { alert("يرجى اختيار تقييم"); return; }
-    setReviewLoading(true);
-    await supabase.from("reviews").insert([{ booking_number: bookingNumber, rating, comment }]);
-    setReviewLoading(false);
-    setReviewSubmitted(true);
-  };
+ const handleReview = async () => {
+  if (rating === 0) { alert("يرجى اختيار تقييم"); return; }
+  setReviewLoading(true);
+  await supabase.from("reviews").insert([{ 
+    booking_number: bookingNumber, 
+    rating, 
+    comment,
+    client_id: client.id,
+  }]);
+  setReviewLoading(false);
+  setReviewSubmitted(true);
+};
 
   if (pageLoading) return (
     <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontSize: 18, fontFamily: "Tajawal, sans-serif" }}>جاري التحميل...</div>
