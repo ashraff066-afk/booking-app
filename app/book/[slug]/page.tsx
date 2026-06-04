@@ -151,6 +151,12 @@ if (existing && existing.length > 0) {
   setReviewLoading(false);
   setReviewSubmitted(true);
 };
+const formatTime = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "مساءً" : "صباحاً";
+  const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+};
 
   if (pageLoading) return (
     <div dir="rtl" style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontSize: 18, fontFamily: "Tajawal, sans-serif" }}>جاري التحميل...</div>
@@ -257,6 +263,7 @@ const slots = [...morningSlots, ...eveningSlots];
 </div>
 
           <div style={{ marginBottom: 20 }}>
+          
             <label style={{ display: "block", fontSize: 13, color: COLORS.muted, marginBottom: 6 }}>📅 التاريخ</label>
             <input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split("T")[0]} style={{ width: "100%", padding: "12px 16px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 14, outline: "none", fontFamily: "Tajawal,sans-serif" }} />
           </div>
@@ -276,7 +283,7 @@ const slots = [...morningSlots, ...eveningSlots];
                   const isSelected = selectedTime === slot;
                   return (
                     <button key={slot} className="slot-btn" disabled={isBooked} onClick={() => setSelectedTime(slot)} style={{ padding: "10px 4px", borderRadius: 10, border: `2px solid ${isSelected ? COLORS.accent : isBooked ? "#ef444444" : COLORS.border}`, background: isSelected ? COLORS.accentDim : isBooked ? "#ef444411" : COLORS.surface, color: isSelected ? COLORS.accent : isBooked ? "#ef4444" : COLORS.text, fontSize: 12, fontWeight: isSelected ? 700 : 400, cursor: isBooked ? "not-allowed" : "pointer", fontFamily: "Tajawal,sans-serif", opacity: isBooked ? 0.5 : 1 }}>
-                      {slot}
+{formatTime(slot)}
                     </button>
                   );
                 })}
