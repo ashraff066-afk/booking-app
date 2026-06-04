@@ -30,6 +30,8 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("bookings");
   const [copied, setCopied] = useState(false);
+  const [gallery, setGallery] = useState<any[]>([]);
+const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [workDays, setWorkDays] = useState<string[]>(["saturday","sunday","monday","tuesday","wednesday"]);
   const [startTime, setStartTime] = useState("08:00");
@@ -100,6 +102,8 @@ setEveningEnd(scheduleData.evening_end || "21:00");
     const { data: servicesData } = await supabase.from("services").select("*").eq("client_id", clientData.id).order("created_at", { ascending: true });
     setServices(servicesData || []);
     setLoading(false);
+    const { data: galleryData } = await supabase.from("business_gallery").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
+setGallery(galleryData || []);
   };
 
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = "/client"; };
@@ -178,7 +182,11 @@ const saveSettings = async () => {
     await supabase.from("services").delete().eq("id", id);
     checkUser();
   };
-
+const deletePhoto = async (id: string, path: string) => {
+  await supabase.storage.from("business-gallery").remove([path]);
+  await supabase.from("business_gallery").delete().eq("id", id);
+  checkUser();
+};
   const addDefaultServices = async () => {
     if (!client) return;
     const defaults = DEFAULT_SERVICES[client.sector] || [];
@@ -291,7 +299,8 @@ const saveSettings = async () => {
           { id: "services", label: "🛎️ الخدمات" },
           { id: "stats", label: "📊 الإحصاء" },
           { id: "schedule", label: "📅 الدوام" },
-          { id: "settings", label: "⚙️ الإعدادات" },
+{ id: "gallery", label: "🖼️ الصور" },
+{ id: "settings", label: "⚙️ الإعدادات" },
         ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontFamily: "Tajawal,sans-serif", fontWeight: 700, background: activeTab === t.id ? COLORS.accentDim : COLORS.surface, color: activeTab === t.id ? COLORS.accent : COLORS.muted, border: `1px solid ${activeTab === t.id ? COLORS.accent : COLORS.border}`, whiteSpace: "nowrap", flexShrink: 0 }}>{t.label}</button>
         ))}
@@ -522,7 +531,48 @@ const saveSettings = async () => {
             </button>
           </div>
         )}
+{/* GALLERY */}
+{activeTab === "gallery" && (
+  <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>
+    <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 4, fontSize: 15 }}>🖼️ صور العمل</h3>
+    <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 16 }}>ستظهر للزبائن في صفحة البروفايل</p>
 
+    <input type="file" accept="image/*" multiple onChange={async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length || !client) return;
+      setUploadingPhoto(true);
+      for (const file of files) {
+        const ext = file.name.split(".").pop();
+        const path = `${client.id}/${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from("business-gallery").upload(path, file, { upsert: true });
+        if (!error) {
+          const { data } = supabase.storage.from("business-gallery").getPublicUrl(path);
+          await supabase.from("business_gallery").insert([{ client_id: client.id, url: data.publicUrl, path }]);
+        }
+      }
+      setUploadingPhoto(false);
+      checkUser();
+    }} style={{ width: "100%", padding: "10px", borderRadius: 10, background: COLORS.surface, border: `1px dashed ${COLORS.accent}`, color: COLORS.text, fontSize: 13, fontFamily: "Tajawal,sans-serif", cursor: "pointer", marginBottom: 16 }} />
+
+    {uploadingPhoto && <div style={{ textAlign: "center", color: COLORS.accent, marginBottom: 16, fontSize: 13 }}>⏳ جاري الرفع...</div>}
+
+    {gallery.length === 0 ? (
+      <div style={{ textAlign: "center", padding: 32, color: COLORS.muted }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>🖼️</div>
+        <div style={{ fontSize: 13 }}>ما أضفت صور بعد</div>
+      </div>
+    ) : (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10 }}>
+        {gallery.map((photo, i) => (
+          <div key={i} style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
+            <img src={photo.url} alt="" style={{ width: "100%", height: 130, objectFit: "cover", display: "block" }} />
+            <button onClick={() => deletePhoto(photo.id, photo.path)} style={{ position: "absolute", top: 6, left: 6, background: "#ef4444cc", border: "none", borderRadius: 6, padding: "4px 8px", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "Tajawal,sans-serif" }}>🗑️</button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
         {/* SETTINGS */}
         {activeTab === "settings" && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 18 }}>

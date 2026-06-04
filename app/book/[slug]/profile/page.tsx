@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [gallery, setGallery] = useState<any[]>([]);
 
   useEffect(() => { if (slug) loadData(); }, [slug]);
 
@@ -42,7 +43,8 @@ export default function ProfilePage() {
 
     const { data: reviewsData } = await supabase.from("reviews").select("*").limit(10);
     setReviews(reviewsData || []);
-
+const { data: galleryData } = await supabase.from("business_gallery").select("*").eq("client_id", clientData.id).order("created_at", { ascending: false });
+setGallery(galleryData || []);
     setLoading(false);
   };
 
@@ -134,7 +136,17 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
-
+{/* معرض الصور */}
+{gallery.length > 0 && (
+  <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+    <h3 style={{ fontWeight: 700, color: COLORS.white, marginBottom: 14, fontSize: 15 }}>📸 صور العمل</h3>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+      {gallery.map((photo, i) => (
+        <img key={i} src={photo.url} alt="" style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 10, border: `1px solid ${COLORS.border}` }} />
+      ))}
+    </div>
+  </div>
+)}
         {/* التقييمات */}
         {reviews.length > 0 && (
           <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
