@@ -140,23 +140,30 @@ setEveningEnd(scheduleData.evening_end || "21:00");
     setTimeout(() => setScheduleSaved(false), 3000);
   };
 
-  const saveSettings = async () => {
-    if (!client) return;
-    setSavingSettings(true);
-await supabase.from("clients").update({ 
-  business_name: settingsName, 
-  phone: settingsPhone, 
-  sector: settingsSector, 
-  address: settingsAddress, 
-  location_url: settingsLocation,
-  specialty: settingsSpecialty,
-  city: settingsCity,
-}).eq("id", client.id);
-    setSavingSettings(false);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
-    checkUser();
-  };
+const saveSettings = async () => {
+  if (!client) return;
+  setSavingSettings(true);
+  const { error, data } = await supabase.from("clients").update({ 
+    business_name: settingsName, 
+    phone: settingsPhone, 
+    sector: settingsSector, 
+    address: settingsAddress, 
+    location_url: settingsLocation,
+    specialty: settingsSpecialty,
+    city: settingsCity,
+  }).eq("id", client.id).select();
+  
+  console.log("updated:", data, "error:", error);
+  
+  if (error) {
+    alert("خطأ: " + error.message);
+  }
+  
+  setSavingSettings(false);
+  setSettingsSaved(true);
+  setTimeout(() => setSettingsSaved(false), 3000);
+  checkUser();
+};
 
   const addService = async () => {
     if (!newService.trim() || !client) return;
