@@ -30,7 +30,8 @@ export default function ExplorePage() {
       .from("clients")
       .select("*")
       .eq("is_active", true)
-      .order("created_at", { ascending: false });
+     .order("avg_rating", { ascending: false })
+.order("created_at", { ascending: false });
     setClients(data || []);
 const uniqueCities: string[] = Array.from(new Set((data || []).map((c: any) => c.city).filter(Boolean)));
     setLoading(false);
