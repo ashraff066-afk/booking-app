@@ -355,6 +355,10 @@ await supabase.from("clients").insert([{
               <span style={{ fontSize: 18, fontWeight: 800, color: COLORS.white }}>موعدي</span>
             </div>
             <p style={{ color: COLORS.muted, fontSize: 13 }}>نظام حجوزات ذكي للعراق 🇮🇶 — جميع الحقوق محفوظة {new Date().getFullYear()}</p>
+            <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 12 }}>
+  <a href="/how-it-works" style={{ color: COLORS.accent, fontSize: 13, textDecoration: "none", fontWeight: 600 }}>كيف يشتغل؟</a>
+  <a href="/explore" style={{ color: COLORS.accent, fontSize: 13, textDecoration: "none", fontWeight: 600 }}>استكشف الخدمات</a>
+</div>
           </footer>
         </div>
       )}
